@@ -12,6 +12,9 @@ A ticket is not done when it's answered — it's done when what it asks for **is
 waiting in an open pull request**. If a ticket asks for (or clearly implies) files, a project, docs or
 config, build them; don't just describe them.
 
+**Open a pull request instead of pushing to `main`.** The loop never runs `git push origin main`:
+every change — code, docs, config, even edits to this skill — ships as a PR for the owner to review.
+
 **All repo changes go through a PR. The loop never merges.** Work happens on a branch
 `factory/issue-N-<slug>`, gets pushed, and a PR against `main` is opened for the owner to review and
 merge. Never `git push origin main`, never `gh pr merge`, never enable auto-merge, never approve your own
@@ -145,7 +148,8 @@ With `--dry-run`, print the reaction, comment text and close action for each tic
 Questions and approval happen **on the ticket**, so the loop never blocks: post, then pick the ticket
 up again on a later pass once a human has replied (see the stage table in step 3).
 
-**Stage 1 — Clarify.** React 👍. Read the ticket and the target project's README/code, then list the
+**Stage 1 — Clarify.** The loop's **first reply** on a feature ticket is always these questions —
+posted **before any commit** for the ticket (no code, no branch pushes yet). React 👍. Read the ticket and the target project's README/code, then list the
 assumptions you'd otherwise have to make. Post them as numbered questions, each with your proposed
 default, so a reply of "defaults are fine" is enough:
 ```
@@ -156,7 +160,7 @@ default, so a reply of "defaults are fine" is enough:
 ```
 If nothing is genuinely unclear, skip straight to Stage 2 and say so in the plan.
 
-**Stage 2 — Plan.** Post the plan: the answers/defaults you're going with; the **architecture** —
+**Stage 2 — Plan.** Post the plan for approval on the ticket, still **before the first commit**: the answers/defaults you're going with; the **architecture** —
 which modules/components are added or changed in which layer (`references/architecture.md`; if the
 project is a monolith, include the split); data/storage changes; UI changes; the **unit test cases**
 you'll write first (`references/tdd.md`), one line each; how each ticket requirement is met; security
@@ -196,8 +200,10 @@ considerations (`references/security.md`); and the browser checks you'll run in 
    `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`
    (SHA = the branch commit, so the images resolve before merge). End with **Not merged — ready for
    your review.**
-7. Comment on the ticket with the PR link and a 2–3 line summary, ending with `<!-- factory-loop -->`.
-   Don't close the ticket — merging the PR closes it.
+7. Reply on the ticket with the PR link, a 2–3 line summary **and the browser screenshots embedded
+   in the reply itself** (same `![…](…?raw=true)` links as the PR body — the ticket must show the
+   evidence, not only the PR), ending with `<!-- factory-loop -->`. Don't close the ticket — merging
+   the PR closes it.
 
 ### Action tickets
 
