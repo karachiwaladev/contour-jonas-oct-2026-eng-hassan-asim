@@ -47,7 +47,7 @@ export function createTaskItem(task, { today, onToggle, onEdit, onDelete, onTagC
   const edit = el('button', {
     className: 'edit',
     text: 'Edit',
-    attrs: { type: 'button', 'aria-label': `Edit "${task.title}"` },
+    attrs: { type: 'button', 'aria-label': `Edit "${task.title}"`, 'data-id': task.id },
     on: { click: () => onEdit(task) },
   });
   return el('li', { className: task.done ? 'done' : '' }, [el('label', {}, [box, body]), edit, del]);

@@ -20,17 +20,20 @@ async function render() {
   const tags = availableTags(all);
   filter = reconcileFilter(filter, tags);
 
+  const visible = all.filter((t) => matchesFilter(t, filter));
+  if (!visible.some((t) => t.id === editingId)) editingId = null; // a filter hid the task being edited
+
   renderFilterBar($('status-filter'), $('tag-filter'), $('priority-filter'), { filter, tags, onChange: updateFilter });
   renderTaskList($('tasks'), $('empty'), {
-    visible: all.filter((t) => matchesFilter(t, filter)),
+    visible,
     total: all.length,
     today: clock().today,
     editingId,
     onEdit: (task) => setEditing(task.id),
-    onCancel: () => setEditing(null),
+    onCancel: () => closeEditor(),
     onSave: async (task, input) => {
       const result = await tasks.edit(task, input);
-      if (result.ok) setEditing(null);
+      if (result.ok) closeEditor();
       return result;
     },
     onToggle: (task, done) => tasks.toggle(task, done).then(render),
@@ -42,6 +45,14 @@ async function render() {
 function setEditing(id) {
   editingId = id;
   render();
+}
+
+// Closes the editor and puts keyboard focus back on that task's Edit button.
+async function closeEditor() {
+  const id = editingId;
+  editingId = null;
+  await render();
+  document.querySelector(`#tasks button.edit[data-id="${CSS.escape(String(id))}"]`)?.focus();
 }
 
 // Components send patches, merged into the current state here, so clicks that land while a

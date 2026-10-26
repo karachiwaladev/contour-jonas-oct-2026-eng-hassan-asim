@@ -14,7 +14,7 @@ export function createTaskEditor(task, { onSave, onCancel }) {
   const due = el('input', { attrs: { type: 'date', value: task.due ?? '' } });
   const tags = el('input', { attrs: { type: 'text', value: task.tags.join(', '), 'aria-label': 'Tags', placeholder: 'Tags, comma separated', autocomplete: 'off' } });
   const repeat = el('select', { attrs: { 'aria-label': 'Repeat' } }, repeatOptions());
-  const priority = el('select', { attrs: { 'aria-label': 'Priority' } }, priorityOptions());
+  const priority = el('select', {}, priorityOptions());
   const error = el('p', { className: 'form-error', attrs: { role: 'alert', hidden: true } });
   capInputs(title, tags);
   repeat.value = task.repeat;
@@ -22,7 +22,7 @@ export function createTaskEditor(task, { onSave, onCancel }) {
 
   const form = el('form', { className: 'editor', attrs: { novalidate: true, 'aria-label': `Edit "${task.title}"` } }, [
     title,
-    el('div', { className: 'row' }, [label('Due', due), tags, repeat, priority]),
+    el('div', { className: 'row' }, [label('Due', due), tags, repeat, label('Priority', priority)]),
     el('div', { className: 'row actions' }, [
       el('button', { text: 'Save', attrs: { type: 'submit' } }),
       el('button', { className: 'secondary', text: 'Cancel', attrs: { type: 'button' }, on: { click: () => onCancel() } }),
@@ -39,5 +39,5 @@ export function createTaskEditor(task, { onSave, onCancel }) {
     if (e.key === 'Escape') onCancel();
   });
   queueMicrotask(() => title.focus()); // once the row is in the document
-  return el('li', { className: 'editing' }, [form]);
+  return el('li', { className: 'editing', attrs: { 'data-id': task.id } }, [form]);
 }

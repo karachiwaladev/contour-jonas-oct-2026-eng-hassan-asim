@@ -33,10 +33,17 @@ export function createTask(input, ctx) {
   return r.ok ? { ok: true, task: { ...r.fields, done: false, createdAt: ctx.now } } : r;
 }
 
-/** Applies edited form input to a task, keeping id, done, createdAt and spawned. Same result shape. */
+/**
+ * Applies edited form input to a task, keeping id, done, createdAt and spawned; fields the input
+ * leaves out keep their current values. Same result shape as createTask.
+ */
 export function editTask(task, input, ctx) {
-  const r = validateFields(input, ctx);
-  return r.ok ? { ok: true, task: { ...task, ...r.fields } } : r;
+  const current = { title: task.title, due: task.due ?? '', tags: task.tags.join(','), repeat: task.repeat, priority: task.priority };
+  const r = validateFields({ ...current, ...input }, ctx);
+  if (!r.ok) return r;
+  // Without a due date the anchor day came from the day it was created; keep it unless repeat changed.
+  const keepAnchor = !r.fields.due && r.fields.repeat === task.repeat && task.repeatDay;
+  return { ok: true, task: { ...task, ...r.fields, repeatDay: keepAnchor ? task.repeatDay : r.fields.repeatDay } };
 }
 
 /**

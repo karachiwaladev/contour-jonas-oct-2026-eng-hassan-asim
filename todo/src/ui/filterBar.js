@@ -12,7 +12,7 @@ import { priorityOptions } from './taskFields.js';
  * @param props    { filter, tags, onChange(patch) } — sends only what changed, e.g. { tag: 'home' }
  */
 export function renderFilterBar(statusEl, tagEl, priorityEl, { filter, tags, onChange: set }) {
-  if (!priorityEl.options.length) priorityEl.replaceChildren(el('option', { text: 'Any priority', attrs: { value: '' } }), ...priorityOptions());
+  if (!priorityEl.options.length) priorityEl.replaceChildren(el('option', { text: 'Any', attrs: { value: '' } }), ...priorityOptions());
   priorityEl.value = filter.priority ?? '';
   priorityEl.onchange = () => set({ priority: priorityEl.value || null });
   replaceKeepingFocus(statusEl, [

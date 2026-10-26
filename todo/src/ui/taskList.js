@@ -9,11 +9,17 @@ import { createTaskEditor } from './taskEditor.js';
  *                 shown in the editor (or null), onSave(task, input), onCancel(), ...taskItem handlers }
  */
 export function renderTaskList(listEl, emptyEl, { visible, total, editingId, onSave, onCancel, ...handlers }) {
-  const row = (task) =>
-    task.id === editingId
-      ? createTaskEditor(task, { onSave: (input) => onSave(task, input), onCancel })
-      : createTaskItem(task, handlers);
+  // An open editor is reused across re-renders (adding or ticking other tasks, filter changes), so
+  // unsaved typing and the focused field survive.
+  const open = listEl.querySelector('li.editing');
+  const reuse = open && open.dataset.id === String(editingId) ? open : null;
+  const focused = reuse?.contains(document.activeElement) ? document.activeElement : null;
+  const row = (task) => {
+    if (task.id !== editingId) return createTaskItem(task, handlers);
+    return reuse ?? createTaskEditor(task, { onSave: (input) => onSave(task, input), onCancel });
+  };
   listEl.replaceChildren(...visible.map(row));
+  focused?.focus();
   emptyEl.hidden = visible.length > 0;
   emptyEl.textContent = total ? 'No tasks match these filters.' : 'No tasks yet.';
 }

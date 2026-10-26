@@ -52,3 +52,15 @@ test('the next copy of a recurring task keeps its priority', () => {
   const { next } = toggleTask({ ...base, done: false, spawned: false, priority: 'high' }, true, ctx);
   assert.equal(next.priority, 'high');
 });
+
+test('editTask keeps the anchor day of a recurring task without a due date when repeat is unchanged', () => {
+  const noDue = { ...base, due: null, repeatDay: 31 };
+  assert.equal(editTask(noDue, input({ due: '', priority: 'high' }), { ...ctx, today: '2027-02-05' }).task.repeatDay, 31);
+  assert.equal(editTask(noDue, input({ due: '', repeat: 'weekly' }), { ...ctx, today: '2027-02-05' }).task.repeatDay, 5);
+});
+
+test('editTask keeps fields the input leaves out', () => {
+  const r = editTask(base, { title: 'Renamed' }, ctx);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.task, { ...base, title: 'Renamed' });
+});
