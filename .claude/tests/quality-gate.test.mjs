@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const gate = join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', 'factory-loop', 'quality-gate.sh');
 
-const PASSING_TEST = "import { test } from 'node:test';\ntest('ok', () => {});\n";
+const PASSING_TEST = "import { test } from 'node:test';\nimport assert from 'node:assert';\nimport { sum } from '../src/domain/sum.js';\ntest('ok', () => assert.equal(sum(1, 2), 3));\n";
 
 function branchWith(files) {
   const dir = mkdtempSync(join(tmpdir(), 'gate-'));
@@ -59,7 +59,8 @@ test('flags inline event handlers and javascript: URLs in HTML', () => {
 
 const app = (extra = '') => ({
   'app/package.json': '{"type":"module"}\n',
-  'app/src/domain/sum.js': `export const sum = (a, b) => a + b;\n${extra}`,
+  'app/src/domain/sum.js': 'export const sum = (a, b) => a + b;\n',
+  'app/src/ui/view.js': `export {};\n${extra}`, // ui is outside coverage scope, so extra code here only meets the other checks
   'app/tests/sum.test.js': PASSING_TEST,
 });
 
@@ -86,7 +87,7 @@ test('fails when tests fail', () => {
 test('fails on a source file over 150 lines', () => {
   const { code, out } = run(branchWith(app('//\n'.repeat(160))));
   assert.equal(code, 1);
-  assert.match(out, /size: app\/src\/domain\/sum\.js has \d+ lines/);
+  assert.match(out, /size: app\/src\/ui\/view\.js has \d+ lines/);
 });
 
 test('fails on unsafe DOM/JS sinks', () => {
@@ -107,4 +108,19 @@ test('fails on a likely secret in added lines', () => {
   const { code, out } = run(branchWith(app(`const token = "${key}";\n`)));
   assert.equal(code, 1);
   assert.match(out, /possible secret/);
+});
+
+test('fails when a changed module has no unit tests (coverage eval)', () => {
+  const files = app();
+  files['app/src/domain/mul.js'] = 'export const mul = (a, b) => a * b;\n';
+  const { code, out } = run(branchWith(files));
+  assert.equal(code, 1, out);
+  assert.match(out, /coverage below threshold/);
+  assert.match(out, /mul\.js: no test imports it/);
+});
+
+test('reports coverage numbers when the threshold is met', () => {
+  const { code, out } = run(branchWith(app()));
+  assert.equal(code, 0, out);
+  assert.match(out, /✓ coverage: lines 100\.0%/);
 });

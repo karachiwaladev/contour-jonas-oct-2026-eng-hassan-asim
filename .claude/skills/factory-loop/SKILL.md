@@ -23,6 +23,7 @@ PR. The ticket closes itself when the owner merges (the PR body says `Closes #N`
 |---|---|---|
 | Layered architecture, components, no file over 150 lines | `references/architecture.md` | quality gate |
 | TDD: failing unit tests first, `node --test` | `references/tdd.md` | quality gate |
+| Coverage eval: every in-scope module tested, line/branch/function thresholds met | `references/tdd.md` § Coverage | quality gate + Stop hook |
 | Code review: checklist, `code-review` skill, independent reviewer | `references/code-review.md` | PR body |
 | Security: sinks, secrets, CSP, deepsec **free** scan, `security-review` skill | `references/security.md` | quality gate |
 
@@ -168,10 +169,12 @@ considerations (`references/security.md`); and the browser checks you'll run in 
    tests, run `node --test` in the project and see them fail (red).
 2. **Build** in the planned layers until the tests pass (green), then refactor with tests green
    ("Action tickets" step 3). Implement the approved plan exactly; note any forced deviation.
+   Then run the coverage eval — `node .claude/skills/factory-loop/coverage/coverage-eval.mjs` —
+   and add tests until it prints `COVERAGE PASS` (an untested module or a low changed file fails it).
 3. **Review** (`references/code-review.md`): self-review checklist, then the `code-review` skill
    (high) and one independent reviewer agent given only the diff + ticket. Fix findings, re-run tests.
 4. **Security gate** (`references/security.md`): run `.claude/skills/factory-loop/quality-gate.sh`
-   (tests, file size, sinks, secrets, free deepsec scan) and the `security-review` skill. Fix every true
+   (tests, coverage eval, file size, sinks, secrets, free deepsec scan) and the `security-review` skill. Fix every true
    positive with a test; triage every deepsec candidate (fix or explain). Re-run until the gate passes.
 5. **Verify in the browser.** Serve the project (e.g. `python3 -m http.server <port>` from its folder,
    or its README's run command) and exercise every requirement in the plan:
@@ -190,7 +193,7 @@ considerations (`references/security.md`); and the browser checks you'll run in 
 6. Commit the code, tests **and** `<project>/screenshots/issue-N/*.png` together on the ticket branch,
    push the branch, and open the PR ("Action tickets" steps 4–6). The PR body carries the full report:
    `Closes #N`, link to the approved plan, what changed (file paths, by layer), each requirement → how
-   it was met and which test covers it, **Tests** (`node --test` pass/fail counts), **Code review** and
+   it was met and which test covers it, **Tests** (`node --test` pass/fail counts and the coverage eval report table), **Code review** and
    **Security** sections (formats in the references), what was verified in the browser, and the
    screenshots embedded via
    `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`
@@ -237,7 +240,13 @@ If there were no open, unhandled tickets, say so in one line — under `/loop` t
 ## Harness tests
 
 The hooks and gate are tested too: `node --test '.claude/tests/*.test.mjs'`. Run them after changing
-anything in `.claude/hooks/` or `quality-gate.sh`.
+anything in `.claude/hooks/`, `quality-gate.sh` or `coverage/`.
+
+## Coverage report on stop
+
+The Stop hook `.claude/hooks/coverage-report.sh` runs the coverage eval at the end of every turn in
+which project source changed vs `origin/main`, and shows the verdict (PASS/FAIL, line/branch/function
+numbers vs thresholds, untested files). It only reports; the quality gate is what blocks a PR.
 
 ## Safety net: auto-commit on stop
 

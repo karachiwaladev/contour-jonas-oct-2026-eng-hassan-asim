@@ -24,10 +24,11 @@ project folder or skill and leave a one-line pointer in the index.
 | `README.md` | Workshop brief: how tickets arrive, scoring, ground rules |
 | `.claude/skills/factory-loop/` | The ticket loop: answer/act on issues; features go questions → plan approval → TDD build → review → security gate → Chrome screenshots → PR |
 | `.claude/skills/factory-loop/references/` | Engineering standards: architecture, TDD, code review, security (loaded per step) |
-| `.claude/skills/factory-loop/quality-gate.sh` | Pre-PR gate: tests, file size, unsafe sinks, secrets, free deepsec scan |
+| `.claude/skills/factory-loop/quality-gate.sh` | Pre-PR gate: tests, coverage eval, file size, unsafe sinks, secrets, free deepsec scan |
 | `.claude/hooks/guard-bash.sh` | PreToolUse hook (+ `guard-normalize.pl`, `guard-args.pl`): blocks main pushes, force/merge/destructive commands, paid deepsec; gates `gh pr create` |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
 | `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes on the current work branch, never `main` (no deletions, no secrets, no force) |
+| `.claude/skills/factory-loop/coverage/` | Coverage eval: did the agent write unit tests? Thresholds per project (`package.json` "coverage"); `.claude/hooks/coverage-report.sh` reports it on every Stop |
 | `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
 | `.claude/tests/` | Unit tests for the hooks and gate: `node --test '.claude/tests/*.test.mjs'` |
 | `.deepsec/` | deepsec workspace, **free `scan` stage only** (`cd .deepsec && npm install && npx deepsec scan`) |

@@ -3,6 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "coverage": "node ../.claude/skills/factory-loop/coverage/coverage-eval.mjs todo"
+  },
+  "coverage": {
+    "exclude": ["src/data/indexedDbBackend.js"],
+    "excludeReason": "thin adapter over the browser's IndexedDB; covered by browser verification, its contract by tests/support/memoryBackend.js"
   }
 }

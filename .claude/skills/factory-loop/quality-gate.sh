@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Quality gate for factory PRs. Free and local only. For every top-level project folder changed
 # relative to the base ref, it checks:
-#   1. tests      if source changed: <project>/tests has test() calls and `node --test` passes
+#   1. tests      if source changed: <project>/tests has test() calls and `node --test` passes,
+#                 and the coverage eval (coverage/coverage-eval.mjs) meets its thresholds
 #                 (docs-only changes don't need tests)
 #   2. size       no source file over MAX_LINES lines (architecture: no monoliths)
 #   3. sinks      no unsafe DOM/JS sinks in changed source or HTML (innerHTML, eval, onclick=, …)
@@ -47,6 +48,11 @@ while IFS= read -r p; do
   # Clear NODE_TEST_CONTEXT so a gate run from inside another test runner still fails properly.
   elif out=$(cd "$p" && env -u NODE_TEST_CONTEXT node --test 2>&1); then
     ok "tests: $(grep -E '^# (pass|fail)' <<<"$out" | tr '\n' ' ')"
+    if cov=$(node "$(dirname "$0")/coverage/coverage-eval.mjs" --base "$base" "$p" 2>&1); then
+      ok "coverage: $(grep -E '^\| (lines|branches|functions) ' <<<"$cov" | awk -F'|' '{gsub(/ /,"",$2); gsub(/ /,"",$3); printf "%s %s  ", $2, $3}')"
+    else
+      bad "coverage below threshold (coverage/coverage-eval.mjs):"; sed 's/^/      /' <<<"$cov"
+    fi
   else
     bad "tests failing:"; tail -25 <<<"$out" | sed 's/^/      /'
   fi

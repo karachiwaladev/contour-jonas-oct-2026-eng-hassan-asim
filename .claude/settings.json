@@ -21,6 +21,15 @@
             "timeout": 90
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/coverage-report.sh",
+            "timeout": 120
+          }
+        ]
       }
     ]
   }

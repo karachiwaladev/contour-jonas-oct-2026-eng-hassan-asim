@@ -41,3 +41,27 @@ One behaviour per test, named as a sentence. No shared mutable state between tes
 
 The PR body includes the test count and the `node --test` summary (pass/fail counts), and the plan
 (Stage 2) lists the test cases before any code is written.
+
+## Coverage eval
+
+`coverage/coverage-eval.mjs` checks that the tests were actually written, using Node's built-in
+coverage (free). For each project with changed source it runs `node --test` with coverage and fails if:
+
+- tests fail;
+- an in-scope source file is never imported by any test ("no test imports it");
+- a changed in-scope file has under `changedFileLines`% lines covered;
+- project totals are under the `lines` / `branches` / `functions` thresholds.
+
+Defaults: scope `src/domain/`, `src/data/`, `src/services/` (UI and `main.js` are browser-verified);
+thresholds 90 / 80 / 90, changed files 80. A project overrides them in its `package.json`:
+
+```json
+"coverage": { "exclude": ["src/data/indexedDbBackend.js"], "excludeReason": "browser-only adapter", "lines": 90 }
+```
+
+Exclude a file only when it can't run under Node (e.g. a thin browser-API adapter), and give the
+reason. Never lower a threshold to get a PR through: write the tests.
+
+Run it with `node .claude/skills/factory-loop/coverage/coverage-eval.mjs [--base REF] [--all] [project]`.
+`quality-gate.sh` runs it, so a coverage miss blocks `gh pr create`; the Stop hook
+`coverage-report.sh` shows the verdict at the end of each turn. Paste its table into the PR **Tests** section.

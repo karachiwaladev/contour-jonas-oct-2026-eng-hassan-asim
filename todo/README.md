@@ -46,6 +46,13 @@ cd todo
 node --test        # or: npm test
 ```
 
+Coverage eval (domain, data and service layers; thresholds and the IndexedDB-adapter exclusion are in
+`package.json` under `"coverage"`):
+
+```bash
+npm run coverage   # prints line/branch/function coverage vs thresholds and COVERAGE PASS or FAIL
+```
+
 ## Architecture
 
 Layered, one job per file; dependencies point inwards (`ui` → `domain`, `services` → `domain` +
