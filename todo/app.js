@@ -2,13 +2,18 @@ const form = document.getElementById('new-task');
 const input = document.getElementById('title');
 const dueInput = document.getElementById('due');
 const tagsInput = document.getElementById('tags');
+const repeatInput = document.getElementById('repeat');
+const recurringFilter = document.getElementById('recurring-filter');
 const list = document.getElementById('tasks');
 const empty = document.getElementById('empty');
 const statusFilter = document.getElementById('status-filter');
 const tagFilter = document.getElementById('tag-filter');
 
-// Current filters: status is 'all' | 'active' | 'done'; tag is a tag name or null for any.
-const filter = { status: 'all', tag: null };
+// Current filters: status is 'all' | 'active' | 'done'; tag is a tag name or null for any;
+// recurring limits the list to repeating tasks.
+const filter = { status: 'all', tag: null, recurring: false };
+
+const repeats = (task) => Boolean(task.repeat) && task.repeat !== 'none';
 
 function parseTags(text) {
   const tags = text.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
@@ -24,6 +29,7 @@ function matches(task) {
   if (filter.status === 'active' && task.done) return false;
   if (filter.status === 'done' && !task.done) return false;
   if (filter.tag && !(task.tags || []).includes(filter.tag)) return false;
+  if (filter.recurring && !repeats(task)) return false;
   return true;
 }
 
@@ -69,7 +75,19 @@ function renderTask(task) {
   box.type = 'checkbox';
   box.checked = task.done;
   box.addEventListener('change', async () => {
-    await TaskDB.put({ ...task, done: box.checked });
+    // Completing a recurring task creates its next copy, once: unticking and re-ticking
+    // the same task doesn't spawn duplicates.
+    const spawn = box.checked && repeats(task) && !task.spawned;
+    await TaskDB.put({ ...task, done: box.checked, spawned: task.spawned || spawn });
+    if (spawn) {
+      await TaskDB.add({
+        title: task.title,
+        tags: task.tags || [],
+        repeat: task.repeat,
+        repeatDay: task.repeatDay,
+        due: Recur.next(task.due, task.repeat, task.repeatDay, today()),
+      });
+    }
     render();
   });
   const body = document.createElement('div');
@@ -87,6 +105,12 @@ function renderTask(task) {
     if (!task.done && task.due < today()) due.classList.add('overdue');
     due.textContent = `Due ${task.due}`;
     meta.append(due);
+  }
+  if (repeats(task)) {
+    const rep = document.createElement('span');
+    rep.className = 'repeat';
+    rep.textContent = `↻ ${Recur.LABELS[task.repeat]}`;
+    meta.append(rep);
   }
   for (const tag of task.tags || []) {
     const t = document.createElement('button');
@@ -117,11 +141,17 @@ function renderTask(task) {
   return li;
 }
 
+recurringFilter.addEventListener('click', () => {
+  filter.recurring = !filter.recurring;
+  recurringFilter.setAttribute('aria-pressed', String(filter.recurring));
+  render();
+});
+
 statusFilter.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-status]');
   if (!b) return;
   filter.status = b.dataset.status;
-  for (const btn of statusFilter.querySelectorAll('button')) {
+  for (const btn of statusFilter.querySelectorAll('button[data-status]')) {
     btn.setAttribute('aria-pressed', String(btn === b));
   }
   render();
@@ -131,10 +161,15 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = input.value.trim();
   if (!title) return;
-  await TaskDB.add({ title, due: dueInput.value || null, tags: parseTags(tagsInput.value) });
+  const due = dueInput.value || null;
+  const repeat = repeatInput.value;
+  // Monthly tasks remember their day so short months don't pull later dates earlier.
+  const repeatDay = repeat === 'none' ? null : Recur.dayOf(due || today());
+  await TaskDB.add({ title, due, tags: parseTags(tagsInput.value), repeat, repeatDay });
   input.value = '';
   dueInput.value = '';
   tagsInput.value = '';
+  repeatInput.value = 'none';
   render();
 });
 

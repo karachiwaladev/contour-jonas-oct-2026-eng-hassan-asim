@@ -1,7 +1,9 @@
 // Client-side storage: a single IndexedDB object store of tasks.
 // Task shape: { id: number (auto), title: string, done: boolean, createdAt: number,
-//               due: string|null ('YYYY-MM-DD'), tags: string[] }
-// Tasks saved before due/tags existed simply lack those fields; the UI defaults them.
+//               due: string|null ('YYYY-MM-DD'), tags: string[],
+//               repeat: 'none'|'daily'|'weekly'|'monthly', repeatDay: number|null,
+//               spawned: boolean (a recurring task already created its next copy) }
+// Tasks saved before due/tags/repeat existed simply lack those fields; the UI defaults them.
 const TaskDB = (() => {
   const DB_NAME = 'todo-app';
   const STORE = 'tasks';
@@ -33,8 +35,8 @@ const TaskDB = (() => {
 
   return {
     all: () => run('readonly', (s) => s.getAll()),
-    add: ({ title, due = null, tags = [] }) =>
-      run('readwrite', (s) => s.add({ title, done: false, createdAt: Date.now(), due, tags })),
+    add: ({ title, due = null, tags = [], repeat = 'none', repeatDay = null }) =>
+      run('readwrite', (s) => s.add({ title, done: false, createdAt: Date.now(), due, tags, repeat, repeatDay })),
     put: (task) => run('readwrite', (s) => s.put(task)),
     remove: (id) => run('readwrite', (s) => s.delete(id)),
   };

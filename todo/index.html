@@ -14,6 +14,12 @@
       <div class="row">
         <label class="field">Due <input id="due" type="date"></label>
         <input id="tags" type="text" placeholder="Tags, comma separated" autocomplete="off">
+        <select id="repeat" aria-label="Repeat">
+          <option value="none">Doesn't repeat</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
         <button type="submit">Add</button>
       </div>
     </form>
@@ -22,6 +28,7 @@
         <button type="button" data-status="all" aria-pressed="true">All</button>
         <button type="button" data-status="active" aria-pressed="false">Incomplete</button>
         <button type="button" data-status="done" aria-pressed="false">Completed</button>
+        <button type="button" id="recurring-filter" aria-pressed="false">↻ Recurring</button>
       </div>
       <div id="tag-filter" class="chips" role="group" aria-label="Tags"></div>
     </nav>
@@ -29,6 +36,7 @@
     <p id="empty" hidden>No tasks yet.</p>
   </main>
   <script src="db.js"></script>
+  <script src="recur.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
