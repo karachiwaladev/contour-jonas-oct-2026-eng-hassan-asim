@@ -28,8 +28,10 @@ $s =~ s{<<-?[ \t]*(['"]?)(\w+)\1([^\n]*)\n(.*?)^\t*\2[ \t]*$}{
 }gmse;
 
 push @extra, $2 while $s =~ /\b(?:bash|sh|zsh)\s+(?:-\w+\s+)*-\w*c\s+(['"])(.*?)\1/g;
-# Single-quoted text is literal; substitutions elsewhere (even inside double quotes) do run.
+# Single-quoted text and backslash-escaped characters (\` \$) are literal; substitutions elsewhere
+# (even inside double quotes) do run.
 (my $unquoted = $s) =~ s/'[^']*'/Q/g;
+$unquoted =~ s/\\./E/g;
 push @extra, $1 while $unquoted =~ /\$\(([^()]*)\)/g;
 push @extra, $1 while $unquoted =~ /`([^`]*)`/g;
 

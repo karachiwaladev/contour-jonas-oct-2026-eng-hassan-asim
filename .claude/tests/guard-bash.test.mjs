@@ -136,6 +136,11 @@ test('does not block commands that only mention a dangerous command', () => {
   allowed("echo 'never run a full `deepsec init`, only scan'");
 });
 
+test('escaped backticks and \\$( are literal text, not commands', () => {
+  allowed('BODY="never run \\`gh pr merge\\` here"; echo "$BODY"');
+  allowed('echo "costs \\$(git reset --hard) nothing"');
+});
+
 test('backticks inside double quotes are executed, so they are checked', () => {
   blocked('echo "never run a full `deepsec init`, only scan"');
   blocked('echo "$(gh pr merge 8)"');
