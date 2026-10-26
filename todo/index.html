@@ -3,32 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'self'">
   <title>Todo</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main>
     <h1>Todo</h1>
-    <form id="new-task">
-      <input id="title" type="text" placeholder="What needs doing?" autocomplete="off" required>
+    <form id="new-task" novalidate>
+      <input id="title" type="text" placeholder="What needs doing?" autocomplete="off" aria-label="Task title">
       <div class="row">
         <label class="field">Due <input id="due" type="date"></label>
-        <input id="tags" type="text" placeholder="Tags, comma separated" autocomplete="off">
+        <input id="tags" type="text" placeholder="Tags, comma separated" autocomplete="off" aria-label="Tags">
+        <select id="repeat" aria-label="Repeat"></select>
         <button type="submit">Add</button>
       </div>
+      <p id="form-error" role="alert" hidden></p>
     </form>
     <nav class="filters" aria-label="Filters">
-      <div id="status-filter" class="chips" role="group" aria-label="Status">
-        <button type="button" data-status="all" aria-pressed="true">All</button>
-        <button type="button" data-status="active" aria-pressed="false">Incomplete</button>
-        <button type="button" data-status="done" aria-pressed="false">Completed</button>
-      </div>
+      <div id="status-filter" class="chips" role="group" aria-label="Status"></div>
       <div id="tag-filter" class="chips" role="group" aria-label="Tags"></div>
     </nav>
     <ul id="tasks"></ul>
     <p id="empty" hidden>No tasks yet.</p>
   </main>
-  <script src="db.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="src/main.js"></script>
 </body>
 </html>
