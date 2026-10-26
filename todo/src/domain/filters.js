@@ -1,7 +1,8 @@
-// Which tasks are visible. A filter is { status: 'all'|'active'|'done', tag: string|null, recurring: boolean }.
+// Which tasks are visible. A filter is
+// { status: 'all'|'active'|'done', tag: string|null, recurring: boolean, priority: string|null (null = any) }.
 import { isRecurring } from './recurrence.js';
 
-export const DEFAULT_FILTER = Object.freeze({ status: 'all', tag: null, recurring: false });
+export const DEFAULT_FILTER = Object.freeze({ status: 'all', tag: null, recurring: false, priority: null });
 export const STATUSES = ['all', 'active', 'done'];
 
 export function matchesFilter(task, filter) {
@@ -9,6 +10,7 @@ export function matchesFilter(task, filter) {
   if (filter.status === 'done' && !task.done) return false;
   if (filter.tag && !task.tags.includes(filter.tag)) return false;
   if (filter.recurring && !isRecurring(task)) return false;
+  if (filter.priority && task.priority !== filter.priority) return false;
   return true;
 }
 

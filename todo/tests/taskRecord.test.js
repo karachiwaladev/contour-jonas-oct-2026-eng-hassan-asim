@@ -5,7 +5,7 @@ import { LIMITS } from '../src/domain/tasks.js';
 
 test('defaults fields missing from older records', () => {
   assert.deepEqual(normalizeTask({ id: 1, title: 'Old', done: false, createdAt: 5 }), {
-    id: 1, title: 'Old', done: false, createdAt: 5, due: null, tags: [], repeat: 'none', repeatDay: null, spawned: false,
+    id: 1, title: 'Old', done: false, createdAt: 5, due: null, tags: [], repeat: 'none', repeatDay: null, spawned: false, priority: 'none',
   });
 });
 
@@ -39,4 +39,10 @@ test('rejects records without an id or a string title', () => {
   assert.equal(normalizeTask('garbage'), null);
   assert.equal(normalizeTask({ title: 'no id' }), null);
   assert.equal(normalizeTask({ id: 3, title: 42 }), null);
+});
+
+test('priority: missing or invalid becomes none, valid values are kept', () => {
+  assert.equal(normalizeTask({ id: 1, title: 'a' }).priority, 'none');
+  assert.equal(normalizeTask({ id: 1, title: 'a', priority: 'bogus' }).priority, 'none');
+  assert.equal(normalizeTask({ id: 1, title: 'a', priority: 'medium' }).priority, 'medium');
 });
