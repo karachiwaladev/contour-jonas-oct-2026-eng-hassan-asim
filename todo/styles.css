@@ -27,8 +27,11 @@ body {
 }
 main { max-width: 520px; margin: 48px auto; padding: 0 16px; }
 h1 { margin: 0 0 16px; font-size: 28px; }
-form { display: flex; gap: 8px; margin-bottom: 16px; }
-input[type="text"] {
+form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+form .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+form .row #tags { min-width: 160px; }
+.field { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
+input[type="text"], input[type="date"] {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -59,6 +62,21 @@ li {
   border-radius: 8px;
 }
 li label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; overflow-wrap: anywhere; }
-li.done span { text-decoration: line-through; color: var(--muted); }
+li.done .title { text-decoration: line-through; color: var(--muted); }
+.filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button {
+  padding: 4px 12px;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 14px;
+}
+.chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; color: var(--muted); }
+.due.overdue { color: var(--danger); font-weight: 600; }
+button.tag { padding: 0 6px; background: transparent; color: var(--accent); border-radius: 4px; font-size: 13px; }
 button.delete { background: transparent; color: var(--danger); padding: 4px 8px; }
 #empty { color: var(--muted); text-align: center; }
