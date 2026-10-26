@@ -7,7 +7,7 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULTS, resolveConfig, inScope, parseLcov, evaluate, formatReport } from '../skills/factory-loop/coverage/lib.mjs';
+import { DEFAULTS, resolveConfig, inScope, parseLcov, evaluate, formatReport, weakenedConfig } from '../skills/factory-loop/coverage/lib.mjs';
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), '..', 'skills', 'factory-loop', 'coverage', 'coverage-eval.mjs');
 
@@ -26,7 +26,7 @@ test('resolveConfig takes valid overrides and ignores bad ones', () => {
   assert.equal(cfg.lines, 70);
   assert.equal(cfg.branches, DEFAULTS.branches);
   assert.equal(cfg.functions, DEFAULTS.functions);
-  assert.deepEqual(cfg.exclude, ['src/data/x.js']);
+  assert.deepEqual(cfg.exclude, ['src/ui/', 'src/main.js', 'src/data/x.js'], 'project excludes add to the defaults');
 });
 
 test('inScope honours include and exclude prefixes', () => {
@@ -34,6 +34,11 @@ test('inScope honours include and exclude prefixes', () => {
   assert.equal(inScope('src/domain/a.js', cfg), true);
   assert.equal(inScope('src/ui/form.js', cfg), false);
   assert.equal(inScope('src/data/idb.js', cfg), false);
+  assert.equal(inScope('src/utils/u.js', cfg), true, 'every folder is in scope by default');
+  assert.equal(inScope('app.js', cfg), true);
+  assert.equal(inScope('src/main.js', cfg), false);
+  assert.equal(inScope('src/data/idb.jsx', cfg), true, 'entries are anchored, not raw prefixes');
+  assert.equal(inScope('src/uix/a.js', cfg), true);
 });
 
 const src = (path, codeLines = 10) => ({ path, codeLines });
@@ -152,4 +157,72 @@ test('stop hook: silent when no project source changed', () => {
   const dir = branchWith({ 'app/README.md': '# app\n' });
   execSync('git update-ref refs/remotes/origin/main main', { cwd: dir });
   assert.deepEqual(runHook(dir), { code: 0, out: '' });
+});
+
+test('weakenedConfig flags lowered thresholds and new excludes, allows tightening', () => {
+  const base = resolveConfig({});
+  assert.deepEqual(weakenedConfig(base, resolveConfig({ coverage: { lines: 95, branches: 90 } })), []);
+  const why = weakenedConfig(base, resolveConfig({ coverage: { lines: 0, exclude: ['src/domain/new.js'], include: ['src/domain/'] } }));
+  assert.deepEqual(why, ['lines 90 → 0', 'exclude adds `src/domain/new.js`', 'include drops ``']);
+});
+
+test('a changed file must also meet per-file branch and function minimums', () => {
+  const lcov = parseLcov('SF:src/domain/a.js\nFNF:2\nFNH:2\nBRF:10\nBRH:0\nLF:10\nLH:10\nend_of_record\n'
+    + 'SF:src/domain/old.js\nFNF:2\nFNH:2\nBRF:100\nBRH:100\nLF:100\nLH:100\nend_of_record\n');
+  const r = evaluate({ lcov, sources: [src('src/domain/a.js'), src('src/domain/old.js', 100)], changed: ['src/domain/a.js'], cfg: DEFAULTS });
+  assert.equal(r.summary.branches > DEFAULTS.branches, true, 'totals alone would pass');
+  assert.match(r.failures.join('\n'), /a\.js: changed but only 0\.0% branches covered \(min 70%\)/);
+});
+
+test('ignore comments fail, and a loaded file with no counted lines is uncovered', () => {
+  const lcov = parseLcov('SF:src/domain/a.js\nFNF:0\nFNH:0\nBRF:0\nBRH:0\nLF:0\nLH:0\nend_of_record\n');
+  const r = evaluate({ lcov, sources: [{ path: 'src/domain/a.js', codeLines: 8, ignores: true }], cfg: DEFAULTS });
+  assert.match(r.failures.join('\n'), /node:coverage disable\/ignore comment/);
+  assert.equal(r.summary.lines, 0);
+});
+
+// A repo whose main already has `baseFiles`; the work branch then applies `change` (a shell command).
+function repoWith(baseFiles, change) {
+  const dir = mkdtempSync(join(tmpdir(), 'cov-'));
+  const sh = (c) => execSync(c, { cwd: dir, stdio: 'pipe' });
+  sh('git init -q -b main');
+  for (const [path, body] of Object.entries(baseFiles)) {
+    mkdirSync(join(dir, dirname(path)), { recursive: true });
+    writeFileSync(join(dir, path), body);
+  }
+  sh('git add -A && git commit -q -m base && git switch -q -c factory/issue-1');
+  sh(change);
+  return dir;
+}
+const TESTED_APP = { 'app/package.json': '{"type":"module"}', 'app/src/domain/sum.js': SUM, 'app/tests/sum.test.js': SUM_TEST };
+
+test('e2e: untested code outside the usual layer folders still fails', () => {
+  const { code, out } = run(repoWith(TESTED_APP, 'mkdir -p app/src/utils && echo "export const u = (x) => (x ? 1 : 2);" > app/src/utils/u.js'));
+  assert.equal(code, 1, out);
+  assert.match(out, /src\/utils\/u\.js: no test imports it/);
+});
+
+test('e2e: a node:coverage ignore comment fails', () => {
+  const dir = repoWith(TESTED_APP, "printf '/* node:coverage disable */\\nexport const sum = (a, b) => a + b;\\n' > app/src/domain/sum.js");
+  const { code, out } = run(dir);
+  assert.equal(code, 1, out);
+  assert.match(out, /node:coverage disable\/ignore comment/);
+});
+
+test('e2e: a branch that only deletes the tests is evaluated and fails', () => {
+  const { code, out } = run(repoWith(TESTED_APP, 'git rm -q app/tests/sum.test.js && git commit -q -m "drop tests"'));
+  assert.equal(code, 1, out);
+  assert.match(out, /COVERAGE FAIL/);
+});
+
+test('e2e: weakening the coverage config on the branch fails', () => {
+  const { code, out } = run(repoWith(TESTED_APP, `echo '{"type":"module","coverage":{"lines":0}}' > app/package.json`));
+  assert.equal(code, 1, out);
+  assert.match(out, /"coverage" weakened on this branch: lines 90 → 0/);
+});
+
+test('e2e: a missing base ref fails closed even with a named project', () => {
+  const r = spawnSync(process.execPath, [cli, '--base', 'origin/nope', 'app'], { cwd: repoWith(TESTED_APP, 'true'), encoding: 'utf8' });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /base ref 'origin\/nope' not found/);
 });

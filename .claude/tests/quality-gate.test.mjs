@@ -124,3 +124,11 @@ test('reports coverage numbers when the threshold is met', () => {
   assert.equal(code, 0, out);
   assert.match(out, /✓ coverage: lines 100\.0%/);
 });
+
+test('a branch that only deletes tests still runs the tests and coverage eval', () => {
+  const dir = branchWith(app());
+  execSync('git switch -q main && git merge -q --ff-only factory/issue-1 && git switch -q -c factory/issue-2 && git rm -q app/tests/sum.test.js && git commit -q -m drop', { cwd: dir });
+  const { code, out } = run(dir);
+  assert.equal(code, 1, out);
+  assert.doesNotMatch(out, /not required/);
+});

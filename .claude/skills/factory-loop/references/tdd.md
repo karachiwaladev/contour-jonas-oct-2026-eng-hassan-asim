@@ -45,23 +45,23 @@ The PR body includes the test count and the `node --test` summary (pass/fail cou
 ## Coverage eval
 
 `coverage/coverage-eval.mjs` checks that the tests were actually written, using Node's built-in
-coverage (free). For each project with changed source it runs `node --test` with coverage and fails if:
+coverage (free). For each project whose source, tests or `package.json` changed (deletions count) it
+runs `node --test` with coverage and fails if:
 
-- tests fail;
+- tests fail, or the project has no `tests/` folder;
 - an in-scope source file is never imported by any test ("no test imports it");
-- a changed in-scope file has under `changedFileLines`% lines covered;
-- project totals are under the `lines` / `branches` / `functions` thresholds.
+- a changed file is under the per-file minimums: lines 80, branches 70, functions 80;
+- project totals are under the thresholds: lines 90, branches 80, functions 90;
+- a source file contains a `node:coverage disable` / `ignore` comment;
+- the branch weakens the project's `"coverage"` config vs the base (lower threshold, new exclude).
 
-Defaults: scope `src/domain/`, `src/data/`, `src/services/` (UI and `main.js` are browser-verified);
-thresholds 90 / 80 / 90, changed files 80. A project overrides them in its `package.json`:
+Scope: every source file except `tests/`, `src/ui/` and `src/main.js` (those are browser-verified).
+Browser-API adapters are tested with a small fake injected as a parameter
+(e.g. `todo/tests/support/fakeIndexedDb.js`), not excluded. A project's `package.json` may tighten
+the config (`"coverage": { "lines": 95 }`); only the owner may loosen it, on `main`. If something
+genuinely can't be tested under Node, ask the owner on the ticket.
 
-```json
-"coverage": { "exclude": ["src/data/indexedDbBackend.js"], "excludeReason": "browser-only adapter", "lines": 90 }
-```
-
-Exclude a file only when it can't run under Node (e.g. a thin browser-API adapter), and give the
-reason. Never lower a threshold to get a PR through: write the tests.
-
-Run it with `node .claude/skills/factory-loop/coverage/coverage-eval.mjs [--base REF] [--all] [project]`.
-`quality-gate.sh` runs it, so a coverage miss blocks `gh pr create`; the Stop hook
-`coverage-report.sh` shows the verdict at the end of each turn. Paste its table into the PR **Tests** section.
+Run it with `node .claude/skills/factory-loop/coverage/coverage-eval.mjs [--base REF] [--all] [project]`
+(fails closed if the base ref is missing). `quality-gate.sh` runs it, so a coverage miss blocks
+`gh pr create`; the Stop hook `coverage-report.sh` shows the verdict at the end of each turn. Paste its
+table into the PR **Tests** section.

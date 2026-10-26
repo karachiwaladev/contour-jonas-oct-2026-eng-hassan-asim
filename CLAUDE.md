@@ -28,7 +28,7 @@ project folder or skill and leave a one-line pointer in the index.
 | `.claude/hooks/guard-bash.sh` | PreToolUse hook (+ `guard-normalize.pl`, `guard-args.pl`): blocks main pushes, force/merge/destructive commands, paid deepsec; gates `gh pr create` |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
 | `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes on the current work branch, never `main` (no deletions, no secrets, no force) |
-| `.claude/skills/factory-loop/coverage/` | Coverage eval: did the agent write unit tests? Thresholds per project (`package.json` "coverage"); `.claude/hooks/coverage-report.sh` reports it on every Stop |
+| `.claude/skills/factory-loop/coverage/` | Coverage eval: did the agent write unit tests? thresholds can only be tightened per project (`package.json` "coverage"); `.claude/hooks/coverage-report.sh` reports it on every Stop |
 | `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
 | `.claude/tests/` | Unit tests for the hooks and gate: `node --test '.claude/tests/*.test.mjs'` |
 | `.deepsec/` | deepsec workspace, **free `scan` stage only** (`cd .deepsec && npm install && npx deepsec scan`) |

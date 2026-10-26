@@ -30,17 +30,21 @@ if ! git rev-parse --verify -q "$base^{commit}" >/dev/null; then
 fi
 
 changed=$( { git diff --name-only --diff-filter=ACMR "$base"...HEAD && git diff --name-only --diff-filter=ACMR HEAD; } | sort -u | grep -v '^$')
+# Deleted paths too: a branch that only deletes tests must still run the tests and coverage eval.
+deleted=$( { git diff --name-only --diff-filter=D "$base"...HEAD && git diff --name-only --diff-filter=D HEAD; } | sort -u | grep -v '^$')
 src_re='\.(m?js|cjs|ts|jsx|tsx)$'
 web_re='\.(m?js|cjs|ts|jsx|tsx|html?)$'
 # Projects = changed top-level folders, skipping dot-folders (harness, deepsec workspace).
-projects=$(grep '/' <<<"$changed" | cut -d/ -f1 | grep -v '^\.' | sort -u)
+projects=$(printf '%s\n%s\n' "$changed" "$deleted" | grep '/' | cut -d/ -f1 | grep -v '^\.' | sort -u)
 [ -z "$projects" ] && echo "  (no project folders changed)"
 
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   echo "Project: $p"
-  if ! grep -E "^$p/" <<<"$changed" | grep -v '/tests/' | grep -qE "$src_re"; then
-    ok "tests: not required (no source changed)"
+  [ -d "$p" ] || { ok "folder removed on this branch — nothing to check"; continue; }
+  # Source, tests (added, edited or deleted) or package.json (coverage config) changed: run tests + eval.
+  if ! printf '%s\n%s\n' "$changed" "$deleted" | grep -E "^$p/" | grep -qE "$src_re|/package\.json$"; then
+    ok "tests: not required (no source, tests or package.json changed)"
   elif ! ls "$p"/tests/*.test.* >/dev/null 2>&1; then
     bad "no tests: add $p/tests/*.test.js (see references/tdd.md)"
   elif ! grep -qE '(^|[^[:alnum:]_.])(test|it)[[:space:]]*\(' "$p"/tests/*.test.*; then
