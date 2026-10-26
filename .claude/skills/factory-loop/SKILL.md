@@ -1,6 +1,6 @@
 ---
 name: factory-loop
-description: Work through open GitHub issues ("tickets") in the current project's repo — read each one, react with an emoji, answer questions and/or carry out the requested action (create files, folders, projects, docs, config, scripts); for new projects/features, clarify and get plan approval on the ticket first, then build, verify in Chrome, and attach screenshots; push to main, comment with the result, and close it as completed. Use when the user says /factory-loop, asks to "process/answer/handle the tickets", or wants a recurring ticket sweep (pair with /loop, e.g. `/loop 5m /factory-loop`).
+description: Work through open GitHub issues ("tickets") in the current project's repo — read each one, react with an emoji, answer questions and/or carry out the requested action (create files, folders, projects, docs, config, scripts); for new projects/features, clarify and get plan approval on the ticket first, then build, verify in Chrome, and attach screenshots; open a pull request (never merged by the loop — the owner reviews and merges), comment with the PR link; question tickets are answered and closed. Use when the user says /factory-loop, asks to "process/answer/handle the tickets", or wants a recurring ticket sweep (pair with /loop, e.g. `/loop 5m /factory-loop`).
 argument-hint: "[owner/repo] [--no-close] [--dry-run]"
 ---
 
@@ -8,8 +8,14 @@ argument-hint: "[owner/repo] [--no-close] [--dry-run]"
 
 One pass = fetch open issues → handle each unhandled one → report. Designed to be safe to run repeatedly from `/loop`.
 
-A ticket is not done when it's answered — it's done when what it asks for **exists on `main`**. If a
-ticket asks for (or clearly implies) files, a project, docs or config, build them; don't just describe them.
+A ticket is not done when it's answered — it's done when what it asks for **is built, verified and
+waiting in an open pull request**. If a ticket asks for (or clearly implies) files, a project, docs or
+config, build them; don't just describe them.
+
+**All repo changes go through a PR. The loop never merges.** Work happens on a branch
+`factory/issue-N-<slug>`, gets pushed, and a PR against `main` is opened for the owner to review and
+merge. Never `git push origin main`, never `gh pr merge`, never enable auto-merge, never approve your own
+PR. The ticket closes itself when the owner merges (the PR body says `Closes #N`).
 
 ## Never destructive
 
@@ -18,6 +24,7 @@ Every action must be additive or an in-place edit. Never, for any ticket:
 - rewrite history: `git push --force`, `git reset --hard`, `git rebase -i`, amending pushed commits;
 - delete or rename branches, tags, releases, issues or comments;
 - change repo settings, permissions, secrets, webhooks or Actions config outside this repo's files;
+- push to `main`, merge any PR, or enable auto-merge;
 - touch other repos or systems, or add real keys/secrets.
 
 A ticket that needs any of these is **out of bounds**: react 👀, comment saying what was skipped and
@@ -27,7 +34,7 @@ stand on their own.
 ## Arguments
 
 - `owner/repo` (optional): target repo. If omitted, resolve it (step 1).
-- `--no-close`: comment and react, but leave issues open.
+- `--no-close`: comment and react, but leave question tickets open (work tickets always stay open until their PR is merged).
 - `--dry-run`: show what would be posted; write nothing to GitHub.
 
 ## Step 1 — Resolve the repo
@@ -65,6 +72,12 @@ gh issue view N -R OWNER/REPO --json title,body,author,labels,comments,reactionG
 **Skip** a ticket already handled: any existing comment by the current user (`gh api user --jq .login`) containing the marker `<!-- factory-loop -->` — **unless** a human reply came after that done-marker
 (typically a reopened ticket). Then it's new work: treat the latest done-marker as "none" in the table
 below and start again at Stage 1, asking what's missing relative to what's already on `main`.
+
+**Open PR feedback.** If the ticket's PR (`gh pr list -R OWNER/REPO --search "#N in:body" --state open`) has
+review comments or a human comment newer than the loop's last comment there, address them: check out
+the PR branch, make the change, re-verify (re-take affected screenshots), push to the same branch, and
+reply on the PR summarising the fix (end with `<!-- factory-loop -->`). Never merge it. A merged PR
+means the ticket is finished; a PR closed without merging means leave the ticket alone and report it.
 
 A **feature ticket** (see step 4) in progress carries a stage marker on the loop's latest comment.
 Work out the stage from the comments, oldest first. A *human reply* is any comment without a
@@ -105,7 +118,7 @@ alone). Anything ambiguous is a change request — revise and re-ask; never buil
    <!-- factory-loop -->"
    ```
    If the question has no single correct answer (it depends on a definition), post a qualified answer that explains the definitions, cites sources, and close it — don't stall waiting for the user. Only skip posting if you genuinely can't find reliable information; then say so in the report.
-4. **Close as answered** (unless `--no-close` or step 2 found no close permission):
+4. **Close as answered** — question tickets only; work tickets stay open until their PR is merged (unless `--no-close` or step 2 found no close permission):
    ```bash
    gh issue close N -R OWNER/REPO --reason completed
    ```
@@ -151,30 +164,44 @@ run in Stage 3. End with `Reply **approved** to build, or tell me what to change
      actually shows the requirement before using it.
    If anything fails, fix and re-verify; don't report a feature you haven't seen working.
    Keep `steps.json` in the scratchpad, and stop the server afterwards.
-3. Commit the code **and** `<project>/screenshots/issue-N/*.png` together (`… (closes #N)`), push.
-4. Final comment: what was built, file paths, commit link, each requirement → how it was met, and
-   the screenshots embedded via
-   `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`.
-   End with `<!-- factory-loop -->`, then close as completed (step 4).
+3. Commit the code **and** `<project>/screenshots/issue-N/*.png` together on the ticket branch, push
+   the branch, and open the PR ("Action tickets" steps 4–6). The PR body carries the full report:
+   `Closes #N`, link to the approved plan, what changed (file paths), each requirement → how it was met,
+   what was verified in the browser, and the screenshots embedded via
+   `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`
+   (SHA = the branch commit, so the images resolve before merge). End with **Not merged — ready for
+   your review.**
+4. Comment on the ticket with the PR link and a 2–3 line summary, ending with `<!-- factory-loop -->`.
+   Don't close the ticket — merging the PR closes it.
 
 ### Action tickets
 
-The repo's rule is **push to `main`** — only what is on GitHub counts — so commit directly, no PR.
+Every change goes on its own branch and into a PR for the owner to review and merge — **never push to
+`main`, never merge**.
 
-1. `git pull --ff-only` on `main` first; stop and report if the tree has conflicting local changes.
+1. `git switch main && git pull --ff-only`; stop and report if the tree has conflicting local changes.
+   Then `git switch -c factory/issue-N-<short-slug>` (or switch to the existing branch for this ticket).
 2. Read `CLAUDE.md` and follow it: one top-level folder per project, keep `CLAUDE.md` under 100 lines, add/update its index row in the same commit.
 3. Make the change: new projects get their own kebab-case top-level folder with a `README.md` (what
    it is, how to run it) and a row in the `CLAUDE.md` index; changes to an existing project go in its
    folder and update its README. Meet every requirement in the ticket explicitly (they're scored as checks); re-read the ticket before committing and tick each one off.
-4. Stage only the files you made or changed (never `git add -A`; skip `.DS_Store` and other junk). Check `git diff --cached --stat` shows no deletions you didn't intend. Commit with message `<summary> (closes #N)`.
-5. `git push origin main` (never `--force`). If the push is rejected, `git pull --rebase` once and retry; if it still fails, `git rebase --abort` if needed, report and stop.
-6. (Action tickets only — feature tickets use Stage 3 step 4.) Comment on the ticket: what was built, file paths, the commit link (`https://github.com/OWNER/REPO/commit/SHA`), and how each requirement was met. End with the `<!-- factory-loop -->` marker. Then close as completed (step 4).
+4. Stage only the files you made or changed (never `git add -A`; skip `.DS_Store` and other junk). Check `git diff --cached --stat` shows no deletions you didn't intend. Commit with message `<summary> (#N)`.
+5. `git push -u origin <branch>` (never `--force`, never to `main`). Then open the PR:
+   ```bash
+   gh pr create -R OWNER/REPO --base main --head <branch> --title "<summary> (#N)" --body "Closes #N …"
+   ```
+   The body says what changed, file paths, how each requirement was met, and ends with
+   **Not merged — ready for your review.** Do not run `gh pr merge` or `--auto`.
+6. (Action tickets — feature tickets use Stage 3 step 4.) Comment on the ticket with the PR link and
+   how each requirement was met, ending with the `<!-- factory-loop -->` marker. Leave the ticket open.
+7. `git switch main` so the next ticket starts clean.
 
 ## Step 5 — Report
 
 Short summary as visible text:
 - Repo used, and your permission level.
-- Per ticket: number, title, what you did (reacted / commented with link / closed or why not), or why skipped.
+- Per ticket: number, title, what you did (reacted / commented / PR opened with link / closed or why not), or why skipped.
+- Open PRs waiting for the owner's review/merge, with links.
 - Tickets left for the user (out-of-bounds requests, failed pushes, no reliable answer).
 - Feature tickets waiting on a human reply (questions or plan), with links.
 
@@ -182,9 +209,9 @@ If there were no open, unhandled tickets, say so in one line — under `/loop` t
 
 ## Safety net: auto-commit on stop
 
-The Stop hook `.claude/hooks/auto-commit.sh` commits and pushes any leftover changes to `main` when a
-turn ends, so nothing finished is left only on disk. Don't rely on it for ticket work: commit each
-ticket yourself with `(closes #N)` so the comment can link the commit.
+The Stop hook `.claude/hooks/auto-commit.sh` commits and pushes leftover changes on the current
+**work branch** when a turn ends (it never touches `main`), so in-progress PR work isn't lost. Don't rely
+on it: commit and open the PR yourself so the ticket comment can link it.
 
 ## Running on a schedule
 

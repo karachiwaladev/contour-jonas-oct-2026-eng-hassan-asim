@@ -1,7 +1,7 @@
 # Software Factory
 
 This repo is a **software factory**: tickets arrive as GitHub issues, and an agent loop
-picks them up, does the work, pushes it to `main`, and reports back on the ticket.
+picks them up, does the work, opens a pull request for the owner to review and merge, and reports back on the ticket.
 We build and improve the loop, not individual features by hand.
 
 ## Progressive disclosure
@@ -24,7 +24,7 @@ project folder or skill and leave a one-line pointer in the index.
 | `README.md` | Workshop brief: how tickets arrive, scoring, ground rules |
 | `.claude/skills/factory-loop/` | The ticket loop: answer/act on issues; features go questions → plan approval → build → Chrome-verified screenshots |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
-| `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes to `main` (no deletions, no secrets, no force) |
+| `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes on the current work branch, never `main` (no deletions, no secrets, no force) |
 | `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
 | `todo/` | Browser todo app (create / done / delete) backed by IndexedDB |
 
@@ -39,5 +39,5 @@ project folder or skill and leave a one-line pointer in the index.
 ## Working agreements
 
 - Tickets are GitHub issues in this repo; run the loop with `/factory-loop` or `/loop 1m /factory-loop`.
-- Push finished work to `main` — only what is on GitHub counts.
+- Finished work goes to a `factory/issue-N-*` branch and a PR; the owner reviews and merges. The loop never pushes to `main` or merges.
 - Training repo only: no Jonas or Contour code, no real keys or secrets.
