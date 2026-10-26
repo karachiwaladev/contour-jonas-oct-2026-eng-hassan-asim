@@ -42,6 +42,14 @@ test('blocks pushing to main in any form', () => {
   blocked('cd x && git push origin master');
 });
 
+test('blocks main pushes written in less common forms', () => {
+  blocked('git -C . push origin main');
+  blocked('git -C /some/repo push --force');
+  blocked('git push origin factory/x:refs/heads/main');
+  blocked("bash <<'EOF'\ngit push origin main\nEOF");
+  blocked('sh -c "git push --force"');
+});
+
 test('blocks a bare push while on main, allows it on a work branch', () => {
   blocked('git push', main);
   allowed('git push');
