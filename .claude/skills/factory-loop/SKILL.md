@@ -62,7 +62,9 @@ gh issue view N -R OWNER/REPO --json title,body,author,labels,comments,reactionG
 ```
 (Plain `gh issue view --comments` can print nothing; use `--json`.)
 
-**Skip** a ticket already handled: any existing comment by the current user (`gh api user --jq .login`) containing the marker `<!-- factory-loop -->`.
+**Skip** a ticket already handled: any existing comment by the current user (`gh api user --jq .login`) containing the marker `<!-- factory-loop -->` — **unless** a human reply came after that done-marker
+(typically a reopened ticket). Then it's new work: treat the latest done-marker as "none" in the table
+below and start again at Stage 1, asking what's missing relative to what's already on `main`.
 
 A **feature ticket** (see step 4) in progress carries a stage marker on the loop's latest comment.
 Work out the stage from the comments, oldest first. A *human reply* is any comment without a
@@ -174,7 +176,6 @@ Short summary as visible text:
 - Repo used, and your permission level.
 - Per ticket: number, title, what you did (reacted / commented with link / closed or why not), or why skipped.
 - Tickets left for the user (out-of-bounds requests, failed pushes, no reliable answer).
-
 - Feature tickets waiting on a human reply (questions or plan), with links.
 
 If there were no open, unhandled tickets, say so in one line — under `/loop` this is a quiet tick.
