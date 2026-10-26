@@ -82,3 +82,4 @@ li.done .title { text-decoration: line-through; color: var(--muted); }
 button.tag { padding: 0; background: transparent; color: var(--accent); border-radius: 4px; font-size: 13px; }
 button.delete { background: transparent; color: var(--danger); padding: 4px 8px; }
 #empty { color: var(--muted); text-align: center; }
+#form-error { margin: 0; color: var(--danger); font-size: 14px; }
