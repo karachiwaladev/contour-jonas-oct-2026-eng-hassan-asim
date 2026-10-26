@@ -25,6 +25,7 @@ project folder or skill and leave a one-line pointer in the index.
 | `.claude/skills/factory-loop/` | The ticket loop: read open issues, do the work, comment, close |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
 | `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
+| `todo/` | Browser todo app (create / done / delete) backed by IndexedDB |
 
 <!-- Add one row per project folder or skill. Keep descriptions to one line. -->
 

@@ -1,0 +1,64 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #fff;
+  --text: #1d2330;
+  --muted: #7a8394;
+  --border: #dde1e7;
+  --accent: #2f6fed;
+  --danger: #c93c3c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171c;
+    --card: #1d2128;
+    --text: #e6e9ef;
+    --muted: #8a93a3;
+    --border: #2d333d;
+    --accent: #6b9bff;
+    --danger: #ff7a7a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, sans-serif;
+}
+main { max-width: 520px; margin: 48px auto; padding: 0 16px; }
+h1 { margin: 0 0 16px; font-size: 28px; }
+form { display: flex; gap: 8px; margin-bottom: 16px; }
+input[type="text"] {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+ul { list-style: none; margin: 0; padding: 0; }
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+li label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; overflow-wrap: anywhere; }
+li.done span { text-decoration: line-through; color: var(--muted); }
+button.delete { background: transparent; color: var(--danger); padding: 4px 8px; }
+#empty { color: var(--muted); text-align: center; }
