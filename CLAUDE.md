@@ -23,6 +23,8 @@ project folder or skill and leave a one-line pointer in the index.
 |---|---|
 | `README.md` | Workshop brief: how tickets arrive, scoring, ground rules |
 | `.claude/skills/factory-loop/` | The ticket loop: read open issues, do the work, comment, close |
+| `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
+| `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
 
 <!-- Add one row per project folder or skill. Keep descriptions to one line. -->
 
