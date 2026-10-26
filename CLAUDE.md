@@ -22,8 +22,9 @@ project folder or skill and leave a one-line pointer in the index.
 | Path | What it is |
 |---|---|
 | `README.md` | Workshop brief: how tickets arrive, scoring, ground rules |
-| `.claude/skills/factory-loop/` | The ticket loop: read open issues, do the work, comment, close |
+| `.claude/skills/factory-loop/` | The ticket loop: read open issues, answer and act (non-destructively), comment, close |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
+| `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes to `main` (no deletions, no secrets, no force) |
 | `.claude/logs/prompts.jsonl` | Prompt log, one JSON object per line; commit it with other work |
 | `todo/` | Browser todo app (create / done / delete) backed by IndexedDB |
 
