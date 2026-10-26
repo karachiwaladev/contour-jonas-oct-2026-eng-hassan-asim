@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Quality gate for factory PRs. Free and local only. For every top-level project folder changed
 # relative to the base ref, it checks:
-#   1. tests      if source changed: <project>/tests has test() calls and `node --test` passes
+#   1. tests      if source changed: <project>/tests has test() calls and `node --test` passes,
+#                 and the coverage eval (coverage/coverage-eval.mjs) meets its thresholds
 #                 (docs-only changes don't need tests)
 #   2. size       no source file over MAX_LINES lines (architecture: no monoliths)
 #   3. sinks      no unsafe DOM/JS sinks in changed source or HTML (innerHTML, eval, onclick=, …)
@@ -29,17 +30,21 @@ if ! git rev-parse --verify -q "$base^{commit}" >/dev/null; then
 fi
 
 changed=$( { git diff --name-only --diff-filter=ACMR "$base"...HEAD && git diff --name-only --diff-filter=ACMR HEAD; } | sort -u | grep -v '^$')
+# Deleted paths too: a branch that only deletes tests must still run the tests and coverage eval.
+deleted=$( { git diff --name-only --diff-filter=D "$base"...HEAD && git diff --name-only --diff-filter=D HEAD; } | sort -u | grep -v '^$')
 src_re='\.(m?js|cjs|ts|jsx|tsx)$'
 web_re='\.(m?js|cjs|ts|jsx|tsx|html?)$'
 # Projects = changed top-level folders, skipping dot-folders (harness, deepsec workspace).
-projects=$(grep '/' <<<"$changed" | cut -d/ -f1 | grep -v '^\.' | sort -u)
+projects=$(printf '%s\n%s\n' "$changed" "$deleted" | grep '/' | cut -d/ -f1 | grep -v '^\.' | sort -u)
 [ -z "$projects" ] && echo "  (no project folders changed)"
 
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   echo "Project: $p"
-  if ! grep -E "^$p/" <<<"$changed" | grep -v '/tests/' | grep -qE "$src_re"; then
-    ok "tests: not required (no source changed)"
+  [ -d "$p" ] || { ok "folder removed on this branch — nothing to check"; continue; }
+  # Source, tests (added, edited or deleted) or package.json (coverage config) changed: run tests + eval.
+  if ! printf '%s\n%s\n' "$changed" "$deleted" | grep -E "^$p/" | grep -qE "$src_re|/package\.json$"; then
+    ok "tests: not required (no source, tests or package.json changed)"
   elif ! ls "$p"/tests/*.test.* >/dev/null 2>&1; then
     bad "no tests: add $p/tests/*.test.js (see references/tdd.md)"
   elif ! grep -qE '(^|[^[:alnum:]_.])(test|it)[[:space:]]*\(' "$p"/tests/*.test.*; then
@@ -47,6 +52,11 @@ while IFS= read -r p; do
   # Clear NODE_TEST_CONTEXT so a gate run from inside another test runner still fails properly.
   elif out=$(cd "$p" && env -u NODE_TEST_CONTEXT node --test 2>&1); then
     ok "tests: $(grep -E '^# (pass|fail)' <<<"$out" | tr '\n' ' ')"
+    if cov=$(node "$(dirname "$0")/coverage/coverage-eval.mjs" --base "$base" "$p" 2>&1); then
+      ok "coverage: $(grep -E '^\| (lines|branches|functions) ' <<<"$cov" | awk -F'|' '{gsub(/ /,"",$2); gsub(/ /,"",$3); printf "%s %s  ", $2, $3}')"
+    else
+      bad "coverage below threshold (coverage/coverage-eval.mjs):"; sed 's/^/      /' <<<"$cov"
+    fi
   else
     bad "tests failing:"; tail -25 <<<"$out" | sed 's/^/      /'
   fi

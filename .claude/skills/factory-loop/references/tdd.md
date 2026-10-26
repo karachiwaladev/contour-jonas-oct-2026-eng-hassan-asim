@@ -41,3 +41,27 @@ One behaviour per test, named as a sentence. No shared mutable state between tes
 
 The PR body includes the test count and the `node --test` summary (pass/fail counts), and the plan
 (Stage 2) lists the test cases before any code is written.
+
+## Coverage eval
+
+`coverage/coverage-eval.mjs` checks that the tests were actually written, using Node's built-in
+coverage (free). For each project whose source, tests or `package.json` changed (deletions count) it
+runs `node --test` with coverage and fails if:
+
+- tests fail, or the project has no `tests/` folder;
+- an in-scope source file is never imported by any test ("no test imports it");
+- a changed file is under the per-file minimums: lines 80, branches 70, functions 80;
+- project totals are under the thresholds: lines 90, branches 80, functions 90;
+- a source file contains a `node:coverage disable` / `ignore` comment;
+- the branch weakens the project's `"coverage"` config vs the base (lower threshold, new exclude).
+
+Scope: every source file except `tests/`, `src/ui/` and `src/main.js` (those are browser-verified).
+Browser-API adapters are tested with a small fake injected as a parameter
+(e.g. `todo/tests/support/fakeIndexedDb.js`), not excluded. A project's `package.json` may tighten
+the config (`"coverage": { "lines": 95 }`); only the owner may loosen it, on `main`. If something
+genuinely can't be tested under Node, ask the owner on the ticket.
+
+Run it with `node .claude/skills/factory-loop/coverage/coverage-eval.mjs [--base REF] [--all] [project]`
+(fails closed if the base ref is missing). `quality-gate.sh` runs it, so a coverage miss blocks
+`gh pr create`; the Stop hook `coverage-report.sh` shows the verdict at the end of each turn. Paste its
+table into the PR **Tests** section.

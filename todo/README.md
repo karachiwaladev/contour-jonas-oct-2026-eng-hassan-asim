@@ -46,6 +46,13 @@ cd todo
 node --test        # or: npm test
 ```
 
+Coverage eval (every module except `src/ui/` and `src/main.js`, which are browser-verified; the
+IndexedDB adapter is tested against `tests/support/fakeIndexedDb.js`):
+
+```bash
+npm run coverage   # prints line/branch/function coverage vs thresholds and COVERAGE PASS or FAIL
+```
+
 ## Architecture
 
 Layered, one job per file; dependencies point inwards (`ui` → `domain`, `services` → `domain` +
@@ -74,7 +81,7 @@ src/
     filterBar.js         status chips, ↻ Recurring toggle, tag chips
     taskList.js          visible tasks + empty state
     taskItem.js          one task row
-tests/                   node --test: domain, data, service (tests/support/memoryBackend.js)
+tests/                   node --test: domain, data (incl. IndexedDB via a fake), service (tests/support/)
 styles.css               styling (light and dark)
 ```
 

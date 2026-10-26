@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "coverage": "node ../.claude/skills/factory-loop/coverage/coverage-eval.mjs todo"
   }
 }
