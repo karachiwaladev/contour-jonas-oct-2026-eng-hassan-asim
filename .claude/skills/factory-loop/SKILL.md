@@ -1,6 +1,6 @@
 ---
 name: factory-loop
-description: Work through open GitHub issues ("tickets") in the current project's repo — read each one, react with an emoji, answer questions and/or carry out the requested action (create files, folders, projects, docs, config, scripts); for new projects/features, clarify and get plan approval on the ticket first, then build, verify in Chrome, and attach screenshots; open a pull request (never merged by the loop — the owner reviews and merges), comment with the PR link; question tickets are answered and closed. Use when the user says /factory-loop, asks to "process/answer/handle the tickets", or wants a recurring ticket sweep (pair with /loop, e.g. `/loop 5m /factory-loop`).
+description: Work through open GitHub issues ("tickets") in the current project's repo — read each one, react with an emoji, answer questions and/or carry out the requested action (create files, folders, projects, docs, config, scripts); for new projects/features, clarify and get plan approval on the ticket first, then build test-first in a layered architecture, code-review and security-gate it (free tools only, incl. deepsec scan), verify in Chrome, and attach screenshots; open a pull request (never merged by the loop — the owner reviews and merges), comment with the PR link; question tickets are answered and closed. Use when the user says /factory-loop, asks to "process/answer/handle the tickets", or wants a recurring ticket sweep (pair with /loop, e.g. `/loop 5m /factory-loop`).
 argument-hint: "[owner/repo] [--no-close] [--dry-run]"
 ---
 
@@ -16,6 +16,20 @@ config, build them; don't just describe them.
 `factory/issue-N-<slug>`, gets pushed, and a PR against `main` is opened for the owner to review and
 merge. Never `git push origin main`, never `gh pr merge`, never enable auto-merge, never approve your own
 PR. The ticket closes itself when the owner merges (the PR body says `Closes #N`).
+
+## Engineering standards (load the reference when the step needs it)
+
+| Standard | Reference | Enforced by |
+|---|---|---|
+| Layered architecture, components, no file over 150 lines | `references/architecture.md` | quality gate |
+| TDD: failing unit tests first, `node --test` | `references/tdd.md` | quality gate |
+| Code review: checklist, `code-review` skill, independent reviewer | `references/code-review.md` | PR body |
+| Security: sinks, secrets, CSP, deepsec **free** scan, `security-review` skill | `references/security.md` | quality gate |
+
+**Free tools only.** Never run paid services — no deepsec `process`/`revalidate`/`triage`/`sandbox`,
+no full `deepsec init`. `.claude/hooks/guard-bash.sh` (PreToolUse) blocks those, plus pushes to `main`,
+force-pushes, merges and destructive git/rm commands, and runs `quality-gate.sh` before `gh pr create`
+— a failing gate blocks the PR.
 
 ## Never destructive
 
@@ -142,15 +156,24 @@ default, so a reply of "defaults are fine" is enough:
 ```
 If nothing is genuinely unclear, skip straight to Stage 2 and say so in the plan.
 
-**Stage 2 — Plan.** Post the plan: the answers/defaults you're going with, files to add or change,
-data/storage changes, UI changes, how each ticket requirement is met, and the browser checks you'll
-run in Stage 3. End with `Reply **approved** to build, or tell me what to change.` and the marker
+**Stage 2 — Plan.** Post the plan: the answers/defaults you're going with; the **architecture** —
+which modules/components are added or changed in which layer (`references/architecture.md`; if the
+project is a monolith, include the split); data/storage changes; UI changes; the **unit test cases**
+you'll write first (`references/tdd.md`), one line each; how each ticket requirement is met; security
+considerations (`references/security.md`); and the browser checks you'll run in Stage 3. End with `Reply **approved** to build, or tell me what to change.` and the marker
 `<!-- factory-loop:plan -->`. Don't touch the code yet.
 
 **Stage 3 — Build, verify, report.**
-1. Build it following "Action tickets" steps 1–3 below, implementing the approved plan exactly; if
-   reality forces a deviation, note it in the final comment.
-2. **Verify in the browser.** Serve the project (e.g. `python3 -m http.server <port>` from its folder,
+1. **Test first.** Branch and read `CLAUDE.md` ("Action tickets" steps 1–2). Write the planned unit
+   tests, run `node --test` in the project and see them fail (red).
+2. **Build** in the planned layers until the tests pass (green), then refactor with tests green
+   ("Action tickets" step 3). Implement the approved plan exactly; note any forced deviation.
+3. **Review** (`references/code-review.md`): self-review checklist, then the `code-review` skill
+   (high) and one independent reviewer agent given only the diff + ticket. Fix findings, re-run tests.
+4. **Security gate** (`references/security.md`): run `.claude/skills/factory-loop/quality-gate.sh`
+   (tests, file size, sinks, secrets, free deepsec scan) and the `security-review` skill. Fix every true
+   positive with a test; triage every deepsec candidate (fix or explain). Re-run until the gate passes.
+5. **Verify in the browser.** Serve the project (e.g. `python3 -m http.server <port>` from its folder,
    or its README's run command) and exercise every requirement in the plan:
    - Interactively with the Chrome extension (`claude-in-chrome` skill, or chrome-devtools MCP if
      installed): click through each flow and read the console for errors.
@@ -164,14 +187,16 @@ run in Stage 3. End with `Reply **approved** to build, or tell me what to change
      actually shows the requirement before using it.
    If anything fails, fix and re-verify; don't report a feature you haven't seen working.
    Keep `steps.json` in the scratchpad, and stop the server afterwards.
-3. Commit the code **and** `<project>/screenshots/issue-N/*.png` together on the ticket branch, push
-   the branch, and open the PR ("Action tickets" steps 4–6). The PR body carries the full report:
-   `Closes #N`, link to the approved plan, what changed (file paths), each requirement → how it was met,
-   what was verified in the browser, and the screenshots embedded via
+6. Commit the code, tests **and** `<project>/screenshots/issue-N/*.png` together on the ticket branch,
+   push the branch, and open the PR ("Action tickets" steps 4–6). The PR body carries the full report:
+   `Closes #N`, link to the approved plan, what changed (file paths, by layer), each requirement → how
+   it was met and which test covers it, **Tests** (`node --test` pass/fail counts), **Code review** and
+   **Security** sections (formats in the references), what was verified in the browser, and the
+   screenshots embedded via
    `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`
    (SHA = the branch commit, so the images resolve before merge). End with **Not merged — ready for
    your review.**
-4. Comment on the ticket with the PR link and a 2–3 line summary, ending with `<!-- factory-loop -->`.
+7. Comment on the ticket with the PR link and a 2–3 line summary, ending with `<!-- factory-loop -->`.
    Don't close the ticket — merging the PR closes it.
 
 ### Action tickets
@@ -185,6 +210,8 @@ Every change goes on its own branch and into a PR for the owner to review and me
 3. Make the change: new projects get their own kebab-case top-level folder with a `README.md` (what
    it is, how to run it) and a row in the `CLAUDE.md` index; changes to an existing project go in its
    folder and update its README. Meet every requirement in the ticket explicitly (they're scored as checks); re-read the ticket before committing and tick each one off.
+   Code changes follow `references/architecture.md` and `references/tdd.md` here too (tests first),
+   and run `quality-gate.sh` + the `security-review` skill before step 5; docs-only changes skip tests.
 4. Stage only the files you made or changed (never `git add -A`; skip `.DS_Store` and other junk). Check `git diff --cached --stat` shows no deletions you didn't intend. Commit with message `<summary> (#N)`.
 5. `git push -u origin <branch>` (never `--force`, never to `main`). Then open the PR:
    ```bash
@@ -206,6 +233,11 @@ Short summary as visible text:
 - Feature tickets waiting on a human reply (questions or plan), with links.
 
 If there were no open, unhandled tickets, say so in one line — under `/loop` this is a quiet tick.
+
+## Harness tests
+
+The hooks and gate are tested too: `node --test '.claude/tests/*.test.mjs'`. Run them after changing
+anything in `.claude/hooks/` or `quality-gate.sh`.
 
 ## Safety net: auto-commit on stop
 
