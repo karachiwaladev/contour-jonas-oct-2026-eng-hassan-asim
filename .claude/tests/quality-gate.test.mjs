@@ -24,10 +24,38 @@ function branchWith(files) {
   return dir;
 }
 
-function run(dir) {
-  const r = spawnSync('bash', [gate, 'main'], { cwd: dir, encoding: 'utf8' });
+function run(dir, base = 'main') {
+  const r = spawnSync('bash', [gate, base], { cwd: dir, encoding: 'utf8' });
   return { code: r.status, out: r.stdout + r.stderr };
 }
+
+test('fails closed when the base ref does not exist', () => {
+  const dir = branchWith({ 'app/a.js': 'x.innerHTML = y;\n' });
+  const { code, out } = run(dir, 'origin/does-not-exist');
+  assert.equal(code, 1, out);
+  assert.match(out, /base ref/);
+});
+
+test('docs-only changes to a project do not require tests', () => {
+  const { code, out } = run(branchWith({ 'app/README.md': '# app\n' }));
+  assert.equal(code, 0, out);
+});
+
+test('test files with no test() calls do not count as tests', () => {
+  const files = app();
+  files['app/tests/sum.test.js'] = '\n';
+  const { code, out } = run(branchWith(files));
+  assert.equal(code, 1);
+  assert.match(out, /no test\(\) calls/);
+});
+
+test('flags inline event handlers and javascript: URLs in HTML', () => {
+  const files = app();
+  files['app/index.html'] = '<button onclick="go()">x</button>\n<a href="javascript:void(0)">y</a>\n';
+  const { code, out } = run(branchWith(files));
+  assert.equal(code, 1);
+  assert.match(out, /unsafe sink in app\/index\.html/);
+});
 
 const app = (extra = '') => ({
   'app/package.json': '{"type":"module"}\n',

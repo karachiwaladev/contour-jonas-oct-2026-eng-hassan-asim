@@ -10,11 +10,13 @@ them. Everything below is local and costs nothing.
 .claude/skills/factory-loop/quality-gate.sh            # compares the branch with origin/main
 ```
 
-It fails on: missing or failing tests, source files over 150 lines, unsafe sinks (`innerHTML`,
-`outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`, `new Function`, string timers) and
-likely secrets in added lines. It also runs the **free deepsec pattern scan** and lists candidates in
-the changed files. The guard hook runs this automatically before `gh pr create` and blocks the PR if
-it fails.
+It fails on: a missing base ref (fails closed), missing/empty/failing tests when source changed
+(docs-only changes don't need tests), source files over 150 lines, unsafe sinks (`innerHTML`,
+`outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`, `new Function`, string timers; in HTML:
+inline `on*=` handlers, `javascript:` URLs, inline scripts) and likely secrets in added lines. It also runs the **free deepsec pattern scan** and lists candidates in
+the changed files. The guard hook runs this automatically before `gh pr create` — on the
+`--head` branch, in a temporary worktree — and blocks the PR if it fails or takes over 240s. In a
+linked worktree the gate uses the main checkout's `.deepsec/` and scans the worktree via `--root`.
 
 ## 2. deepsec (free stage)
 

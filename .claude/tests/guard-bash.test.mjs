@@ -50,6 +50,42 @@ test('blocks main pushes written in less common forms', () => {
   blocked('sh -c "git push --force"');
 });
 
+test('blocks pushes hidden behind shell keywords, prefixes or trailing separators', () => {
+  blocked('git push origin main;');
+  blocked('if true; then git push origin main; fi');
+  blocked('(git push origin main)');
+  blocked('GIT_TRACE=1 git push --force origin factory/x');
+  blocked('env git push origin main');
+  blocked('true && { git push origin main; }');
+});
+
+test('blocks force-push written as +refspec, combined flags or mirror/all', () => {
+  blocked('git push origin +factory/x');
+  blocked('git push -uf origin factory/x');
+  blocked('git push --force-if-includes origin factory/x');
+  blocked('git push --mirror origin');
+  blocked('git push --all origin');
+});
+
+test('on main, pushing HEAD or switching to main first is blocked', () => {
+  blocked('git push -u origin HEAD', main);
+  blocked('git switch main && git push');
+  blocked('git checkout main; git push origin HEAD');
+});
+
+test('blocks recursive rm with split flags, traversal out of tmp; ignores redirects', () => {
+  blocked('rm -f -r todo');
+  blocked('rm --recursive todo');
+  blocked('rm -rf /tmp/../Users/x');
+  allowed('rm -rf /tmp/x 2>/dev/null');
+});
+
+test('checks heredocs piped into a shell and command substitutions in unquoted heredocs', () => {
+  blocked('cat <<EOF | bash\ngit push --force origin main\nEOF');
+  blocked('cat <<EOF > f\n$(git reset --hard)\nEOF');
+  allowed("cat > notes.md <<'EOF'\nUse bash -c \"git push --force\" never.\nEOF");
+});
+
 test('blocks a bare push while on main, allows it on a work branch', () => {
   blocked('git push', main);
   allowed('git push');
@@ -97,7 +133,12 @@ test('does not block commands that only mention a dangerous command', () => {
   allowed('grep -n "git push --force" README.md');
   allowed('git commit -m "docs: never run gh pr merge"');
   allowed('echo "rm -rf is blocked"');
-  allowed('echo "never run a full `deepsec init`, only scan"');
+  allowed("echo 'never run a full `deepsec init`, only scan'");
+});
+
+test('backticks inside double quotes are executed, so they are checked', () => {
+  blocked('echo "never run a full `deepsec init`, only scan"');
+  blocked('echo "$(gh pr merge 8)"');
 });
 
 test('ignores heredoc bodies (file content being written)', () => {
