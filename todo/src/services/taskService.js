@@ -1,6 +1,6 @@
-// Application use cases: list, add, toggle and remove tasks. Applies the domain rules, persists
+// Application use cases: list, add, edit, toggle and remove tasks. Applies the domain rules, persists
 // through the store, and turns storage failures into results the UI can show.
-import { createTask, toggleTask } from '../domain/tasks.js';
+import { createTask, editTask, toggleTask } from '../domain/tasks.js';
 import { sortByCreated } from '../domain/filters.js';
 
 const SAVE_FAILED = "The task couldn't be saved (browser storage unavailable or full).";
@@ -10,20 +10,24 @@ const SAVE_FAILED = "The task couldn't be saved (browser storage unavailable or 
  * @param clock () => { now: ms timestamp, today: 'YYYY-MM-DD' }
  */
 export function createTaskService(store, clock) {
+  async function save(result, write) {
+    if (!result.ok) return { ok: false, error: result.error };
+    try {
+      await write(result.task);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: SAVE_FAILED };
+    }
+  }
+
   return {
     list: async () => sortByCreated(await store.all()),
 
     /** @returns {Promise<{ ok: true } | { ok: false, error: string }>} */
-    async add(input) {
-      const result = createTask(input, clock());
-      if (!result.ok) return { ok: false, error: result.error };
-      try {
-        await store.add(result.task);
-        return { ok: true };
-      } catch {
-        return { ok: false, error: SAVE_FAILED };
-      }
-    },
+    add: (input) => save(createTask(input, clock()), store.add),
+
+    /** Validates edited fields and saves them over the task. Same result shape as add. */
+    edit: (task, input) => save(editTask(task, input, clock()), store.put),
 
     /** Ticks/unticks; a recurring task's first completion also stores its next copy. */
     async toggle(task, done) {

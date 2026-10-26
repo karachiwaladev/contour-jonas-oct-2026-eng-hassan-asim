@@ -16,6 +16,7 @@
         <label class="field">Due <input id="due" type="date"></label>
         <input id="tags" type="text" placeholder="Tags, comma separated" autocomplete="off" aria-label="Tags">
         <select id="repeat" aria-label="Repeat"></select>
+        <label class="field">Priority <select id="priority"></select></label>
         <button type="submit">Add</button>
       </div>
       <p id="form-error" role="alert" hidden></p>
@@ -23,6 +24,7 @@
     <nav class="filters" aria-label="Filters">
       <div id="status-filter" class="chips" role="group" aria-label="Status"></div>
       <div id="tag-filter" class="chips" role="group" aria-label="Tags"></div>
+      <label class="field">Priority <select id="priority-filter"></select></label>
     </nav>
     <ul id="tasks"></ul>
     <p id="empty" hidden>No tasks yet.</p>

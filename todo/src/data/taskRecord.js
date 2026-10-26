@@ -4,6 +4,7 @@
 import { isValidIsoDate } from '../domain/dates.js';
 import { REPEATS } from '../domain/recurrence.js';
 import { LIMITS, cleanTags } from '../domain/tasks.js';
+import { isPriority } from '../domain/priority.js';
 
 export function normalizeTask(r) {
   if (!r || typeof r !== 'object' || r.id === undefined || typeof r.title !== 'string') return null;
@@ -19,5 +20,6 @@ export function normalizeTask(r) {
     repeat,
     repeatDay: repeat === 'none' ? null : day,
     spawned: r.spawned === true,
+    priority: isPriority(r.priority) ? r.priority : 'none',
   };
 }

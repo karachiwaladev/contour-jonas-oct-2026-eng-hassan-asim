@@ -21,7 +21,7 @@ test('createTask builds a task from valid input', () => {
   assert.equal(r.ok, true);
   assert.deepEqual(r.task, {
     title: 'Pay rent', done: false, createdAt: 1000, due: '2027-01-31',
-    tags: ['home'], repeat: 'monthly', repeatDay: 31,
+    tags: ['home'], repeat: 'monthly', repeatDay: 31, priority: 'none',
   });
 });
 
@@ -43,13 +43,13 @@ test('createTask rejects invalid input instead of storing it', () => {
   assert.equal(createTask({ title: 'x', repeat: 'hourly' }, ctx).ok, false);
 });
 
-const daily = { id: 7, title: 'Water', done: false, createdAt: 1, due: '2026-10-20', tags: ['home'], repeat: 'daily', repeatDay: 20, spawned: false };
+const daily = { id: 7, title: 'Water', done: false, createdAt: 1, due: '2026-10-20', tags: ['home'], repeat: 'daily', repeatDay: 20, spawned: false, priority: 'medium' };
 
 test('toggleTask: completing a recurring task spawns the next copy once', () => {
   const { updated, next } = toggleTask(daily, true, ctx);
   assert.equal(updated.done, true);
   assert.equal(updated.spawned, true);
-  assert.deepEqual(next, { title: 'Water', done: false, createdAt: 1000, due: '2026-10-26', tags: ['home'], repeat: 'daily', repeatDay: 20 });
+  assert.deepEqual(next, { title: 'Water', done: false, createdAt: 1000, due: '2026-10-26', tags: ['home'], repeat: 'daily', repeatDay: 20, priority: 'medium' });
 });
 
 test('toggleTask: unticking and re-ticking does not spawn a duplicate', () => {

@@ -44,3 +44,17 @@ test('reconcileFilter drops a selected tag that no longer exists', () => {
   assert.equal(reconcileFilter({ ...DEFAULT_FILTER, tag: 'gone' }, ['home']).tag, null);
   assert.equal(reconcileFilter({ ...DEFAULT_FILTER, tag: 'home' }, ['home']).tag, 'home');
 });
+
+test('priority filter keeps only matching tasks; null keeps all; combines with other filters', () => {
+  const withP = [
+    { id: 1, title: 'A', done: false, tags: ['work'], repeat: 'none', priority: 'high' },
+    { id: 2, title: 'B', done: true, tags: ['work'], repeat: 'none', priority: 'high' },
+    { id: 3, title: 'C', done: false, tags: [], repeat: 'none', priority: 'none' },
+  ];
+  const pick = (f) => withP.filter((t) => matchesFilter(t, { ...DEFAULT_FILTER, ...f })).map((t) => t.id);
+  assert.equal(DEFAULT_FILTER.priority, null);
+  assert.deepEqual(pick({}), [1, 2, 3]);
+  assert.deepEqual(pick({ priority: 'high' }), [1, 2]);
+  assert.deepEqual(pick({ priority: 'none' }), [3]);
+  assert.deepEqual(pick({ priority: 'high', status: 'active', tag: 'work' }), [1]);
+});

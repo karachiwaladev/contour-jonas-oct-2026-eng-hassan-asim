@@ -1,7 +1,7 @@
-// One task row: checkbox, title, due date, repeat label, tag chips and a delete button.
+// One task row: checkbox, title, priority badge, due date, repeat label, tag chips, edit and delete.
 import { el } from './dom.js';
 import { isRecurring } from '../domain/recurrence.js';
-import { REPEAT_LABELS } from './labels.js';
+import { REPEAT_LABELS, PRIORITY_LABELS } from './labels.js';
 
 function meta(task, today, onTagClick) {
   const parts = [];
@@ -21,17 +21,21 @@ function meta(task, today, onTagClick) {
   return parts.length ? el('div', { className: 'meta' }, parts) : null;
 }
 
+// Text label as well as colour, so the priority isn't conveyed by colour alone. 'none' shows nothing.
+const badge = (priority) =>
+  priority === 'none' ? null : el('span', { className: `priority priority-${priority}`, text: PRIORITY_LABELS[priority] });
+
 /**
  * @param task     normalized task
- * @param handlers { today, onToggle(task, done), onDelete(task), onTagClick(tag) }
+ * @param handlers { today, onToggle(task, done), onEdit(task), onDelete(task), onTagClick(tag) }
  */
-export function createTaskItem(task, { today, onToggle, onDelete, onTagClick }) {
+export function createTaskItem(task, { today, onToggle, onEdit, onDelete, onTagClick }) {
   const box = el('input', {
     attrs: { type: 'checkbox', checked: task.done },
     on: { change: (e) => onToggle(task, e.target.checked) },
   });
   const body = el('div', { className: 'body' }, [
-    el('span', { className: 'title', text: task.title }),
+    el('div', { className: 'title-row' }, [el('span', { className: 'title', text: task.title }), badge(task.priority)]),
     meta(task, today, onTagClick),
   ]);
   const del = el('button', {
@@ -40,5 +44,11 @@ export function createTaskItem(task, { today, onToggle, onDelete, onTagClick }) 
     attrs: { type: 'button', 'aria-label': `Delete "${task.title}"` },
     on: { click: () => onDelete(task) },
   });
-  return el('li', { className: task.done ? 'done' : '' }, [el('label', {}, [box, body]), del]);
+  const edit = el('button', {
+    className: 'edit',
+    text: 'Edit',
+    attrs: { type: 'button', 'aria-label': `Edit "${task.title}"`, 'data-id': task.id },
+    on: { click: () => onEdit(task) },
+  });
+  return el('li', { className: task.done ? 'done' : '' }, [el('label', {}, [box, body]), edit, del]);
 }

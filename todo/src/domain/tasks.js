@@ -1,7 +1,8 @@
-// Task rules: validating new input and completing tasks.
+// Task rules: validating new and edited input, and completing tasks.
 // Pure functions: time comes in through `ctx` ({ now: ms timestamp, today: 'YYYY-MM-DD' }).
 import { isValidIsoDate, parseIso } from './dates.js';
 import { REPEATS, isRecurring, nextDue } from './recurrence.js';
+import { isPriority } from './priority.js';
 
 export const LIMITS = { title: 200, tag: 30, tags: 10 };
 
@@ -13,18 +14,36 @@ export function cleanTags(list) {
 
 export const parseTags = (text) => cleanTags(String(text ?? '').split(','));
 
-/** Validates form input. Returns { ok: true, task } or { ok: false, error }. */
-export function createTask({ title, due = '', tags = '', repeat = 'none' }, ctx) {
+// The user-editable fields, validated the same way for adding and editing.
+// Returns { ok: true, fields } or { ok: false, error }.
+function validateFields({ title, due = '', tags = '', repeat = 'none', priority = 'none' }, ctx) {
   const name = String(title ?? '').trim();
   if (!name) return { ok: false, error: 'Title is required.' };
   if (name.length > LIMITS.title) return { ok: false, error: `Title is limited to ${LIMITS.title} characters.` };
   if (due && !isValidIsoDate(due)) return { ok: false, error: 'Due date is not a valid date.' };
   if (!REPEATS.includes(repeat)) return { ok: false, error: 'Unknown repeat option.' };
+  if (!isPriority(priority)) return { ok: false, error: 'Unknown priority.' };
   const repeatDay = repeat === 'none' ? null : parseIso(due || ctx.today)[2];
-  return {
-    ok: true,
-    task: { title: name, done: false, createdAt: ctx.now, due: due || null, tags: parseTags(tags), repeat, repeatDay },
-  };
+  return { ok: true, fields: { title: name, due: due || null, tags: parseTags(tags), repeat, repeatDay, priority } };
+}
+
+/** Validates form input. Returns { ok: true, task } or { ok: false, error }. */
+export function createTask(input, ctx) {
+  const r = validateFields(input, ctx);
+  return r.ok ? { ok: true, task: { ...r.fields, done: false, createdAt: ctx.now } } : r;
+}
+
+/**
+ * Applies edited form input to a task, keeping id, done, createdAt and spawned; fields the input
+ * leaves out keep their current values. Same result shape as createTask.
+ */
+export function editTask(task, input, ctx) {
+  const current = { title: task.title, due: task.due ?? '', tags: task.tags.join(','), repeat: task.repeat, priority: task.priority };
+  const r = validateFields({ ...current, ...input }, ctx);
+  if (!r.ok) return r;
+  // Without a due date the anchor day came from the day it was created; keep it unless repeat changed.
+  const keepAnchor = !r.fields.due && r.fields.repeat === task.repeat && task.repeatDay;
+  return { ok: true, task: { ...task, ...r.fields, repeatDay: keepAnchor ? task.repeatDay : r.fields.repeatDay } };
 }
 
 /**
@@ -43,6 +62,7 @@ export function toggleTask(task, done, ctx) {
     tags: [...task.tags],
     repeat: task.repeat,
     repeatDay: task.repeatDay,
+    priority: task.priority,
   };
   return { updated, next };
 }

@@ -56,3 +56,34 @@ test('remove deletes the task', async () => {
   await s.remove((await s.list())[0]);
   assert.deepEqual(await s.list(), []);
 });
+
+test('edit saves a valid change and keeps the task id', async () => {
+  const s = service();
+  await s.add({ title: 'Draft', priority: 'low' });
+  const [t] = await s.list();
+  assert.deepEqual(await s.edit(t, { title: 'Final', due: '', tags: 'work', repeat: 'none', priority: 'high' }), { ok: true });
+  const [after] = await s.list();
+  assert.equal(after.id, t.id);
+  assert.equal(after.title, 'Final');
+  assert.equal(after.priority, 'high');
+  assert.deepEqual(after.tags, ['work']);
+});
+
+test('edit returns the validation error and saves nothing', async () => {
+  const s = service();
+  await s.add({ title: 'Keep me' });
+  const [t] = await s.list();
+  const r = await s.edit(t, { title: '' });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /required/);
+  assert.equal((await s.list())[0].title, 'Keep me');
+});
+
+test('edit reports a storage failure instead of throwing', async () => {
+  const backend = { ...createMemoryBackend([{ id: 1, title: 'a' }]), put: async () => { throw new Error('QuotaExceededError'); } };
+  const s = createTaskService(createTaskStore(backend), clock);
+  const [t] = await s.list();
+  const r = await s.edit(t, { title: 'b' });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /couldn't be saved/i);
+});

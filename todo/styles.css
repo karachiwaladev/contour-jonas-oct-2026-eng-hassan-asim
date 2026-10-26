@@ -83,3 +83,20 @@ button.tag { padding: 0; background: transparent; color: var(--accent); border-r
 button.delete { background: transparent; color: var(--danger); padding: 4px 8px; }
 #empty { color: var(--muted); text-align: center; }
 #form-error { margin: 0; color: var(--danger); font-size: 14px; }
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.priority { padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 20px; }
+.priority-high { background: #fde2e2; color: #9b1c1c; }
+.priority-medium { background: #fdf0d5; color: #8a5300; }
+.priority-low { background: #e7eaef; color: #424a57; }
+@media (prefers-color-scheme: dark) {
+  .priority-high { background: #4a1f22; color: #ffb4b4; }
+  .priority-medium { background: #45351a; color: #ffd38a; }
+  .priority-low { background: #2d333d; color: #c6ccd6; }
+}
+button.edit { background: transparent; color: var(--accent); padding: 4px 8px; }
+li.editing { display: block; }
+.editor { margin: 0; }
+.editor .actions { justify-content: flex-end; }
+button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.form-error { margin: 0; color: var(--danger); font-size: 14px; }
+.filters .field select { flex: 0 1 auto; padding: 4px 8px; }
