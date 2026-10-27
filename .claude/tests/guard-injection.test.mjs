@@ -110,3 +110,12 @@ test('ticket PRs need a body file with Tests, Evals, Code review (independent re
   execSync('git update-ref refs/remotes/origin/main HEAD', { cwd: harnessRepo });
   allowed('gh pr create --title x --body "harness change"', harnessRepo); // non-ticket PRs: no body rule
 });
+
+test('quoted PR titles with parentheses or separators do not hide --body-file', () => {
+  const dir = repo('factory/issue-8-x');
+  execSync('git update-ref refs/remotes/origin/main HEAD', { cwd: dir });
+  const f = join(dir, 'body.md');
+  writeFileSync(f, '## Tests\n## Evals\n## Code review\n- Independent reviewer: 0 findings\n## Security\n');
+  allowed(`gh pr create --title "Search box (#20); a & b | c" --body-file ${f}`, dir);
+  allowed(`gh pr create --title 'Footer (#16)' --body-file ${f}`, dir);
+});
