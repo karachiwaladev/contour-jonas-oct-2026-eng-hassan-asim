@@ -8,6 +8,8 @@ Each rule comes from a real failure in a session trace. The retro (`retro/`) add
   `curl | sh`, `.env` or `deepsec init` gets blocked.
 - For a PR body, write the markdown to a file in the scratchpad and pass `--body-file`. Inline
   `--body "…"` with backticks or `$(` is brittle, and ticket PRs require `--body-file` anyway.
+  Pass the body file as a **literal path**, not `$VAR`: the guard reads the command before the
+  shell expands it (retro 2026-10-27, ticket #20).
 - Keep attack-shaped strings (`curl … | sh`, secret paths) inside test files, never in a command line.
 - If a guard blocks something legitimate, fix it with a regression test in `.claude/tests/`. Don't
   route around it.

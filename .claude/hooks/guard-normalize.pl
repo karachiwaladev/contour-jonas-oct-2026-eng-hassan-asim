@@ -50,8 +50,10 @@ if ($ENV{GUARD_FLAT}) {
 for my $text ($s, @extra) {
   my $t = $text;
   if ($ENV{GUARD_KEEP_QUOTES}) {
-    $t =~ s/'([^']*)'/$1/g;
-    $t =~ s/"((?:[^"\\]|\\.)*)"/$1/g;
+    # Quoted text is one argument: its ; & | ( ) { } are text, not separators, so they become
+    # spaces before the split (a PR title like "Fix (#20)" must not cut the command in two).
+    $t =~ s{'([^']*)'}{ (my $q = $1) =~ tr/;&|(){}/ /; $q }ge;
+    $t =~ s{"((?:[^"\\]|\\.)*)"}{ (my $q = $1) =~ tr/;&|(){}/ /; $q }ge;
   } else {
     $t =~ s/'[^']*'/Q/g;
     $t =~ s/"(?:[^"\\]|\\.)*"/Q/g;
