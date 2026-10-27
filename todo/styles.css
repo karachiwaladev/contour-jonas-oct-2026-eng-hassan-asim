@@ -32,7 +32,7 @@ form .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 form .row #tags { min-width: 160px; }
 form .row select { flex: 0 1 auto; }
 .field { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 14px; }
-input[type="text"], input[type="date"], select {
+input[type="text"], input[type="date"], input[type="search"], select {
   flex: 1;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -101,3 +101,8 @@ button.secondary { background: transparent; color: var(--text); border: 1px soli
 .form-error { margin: 0; color: var(--danger); font-size: 14px; }
 .filters .field select { flex: 0 1 auto; padding: 4px 8px; }
 #task-footer { margin-top: 8px; color: var(--muted); font-size: 14px; text-align: center; }
+.search { position: relative; margin-bottom: 12px; }
+.search input { width: 100%; padding-right: 40px; }
+.search input::-webkit-search-cancel-button { display: none; }
+#search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 2px 10px; background: transparent; color: var(--muted); font-size: 20px; line-height: 1; }
+.filters .row { display: flex; flex-wrap: wrap; gap: 12px; }

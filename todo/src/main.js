@@ -9,6 +9,7 @@ import { bindTaskForm } from './ui/taskForm.js';
 import { renderFilterBar } from './ui/filterBar.js';
 import { renderTaskList } from './ui/taskList.js';
 import { renderTaskFooter } from './ui/taskFooter.js';
+import { bindSearchBox } from './ui/searchBox.js';
 import { countTasks } from './domain/stats.js';
 
 const $ = (id) => document.getElementById(id);
@@ -22,15 +23,16 @@ async function render() {
   const tags = availableTags(all);
   filter = reconcileFilter(filter, tags);
 
-  const visible = all.filter((t) => matchesFilter(t, filter));
+  const { today } = clock();
+  const visible = all.filter((t) => matchesFilter(t, filter, today));
   if (!visible.some((t) => t.id === editingId)) editingId = null; // a filter hid the task being edited
 
   renderTaskFooter($('task-footer'), countTasks(all));
-  renderFilterBar($('status-filter'), $('tag-filter'), $('priority-filter'), { filter, tags, onChange: updateFilter });
+  renderFilterBar($('status-filter'), $('tag-filter'), { priority: $('priority-filter'), due: $('due-filter') }, { filter, tags, onChange: updateFilter });
   renderTaskList($('tasks'), $('empty'), {
     visible,
     total: all.length,
-    today: clock().today,
+    today,
     editingId,
     onEdit: (task) => setEditing(task.id),
     onCancel: () => closeEditor(),
@@ -64,6 +66,8 @@ function updateFilter(patch) {
   filter = { ...filter, ...patch };
   render();
 }
+
+bindSearchBox($('search'), $('search-clear'), (query) => updateFilter({ query }));
 
 bindTaskForm($('new-task'), async (input) => {
   const result = await tasks.add(input);

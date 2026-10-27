@@ -31,7 +31,12 @@ database (IndexedDB), so they persist across reloads with no server.
 - **Filter by tag**: pick one of the available tags (only tags in use are listed), or click a
   tag on any task. **Any tag** clears it.
 - **Filter by priority**: the **Priority** menu shows only High, Medium, Low or No-priority tasks
-  (**Any priority** clears it). Status, tag, recurring and priority filters all combine.
+  (**Any** clears it).
+- **Filter by due date**: the **Due** menu shows **Overdue** (past and still open), **Today**,
+  **This week** (today plus the next 6 days) or **No date** tasks; **Any** clears it.
+- **Search**: the box above the filters narrows the list as you type, matching the title and tags
+  (case-insensitive, a leading `#` is optional, every word must match). **×** or **Esc** clears it.
+  Search, status, tag, recurring, priority and due filters all combine.
 
 - **Validation**: empty titles, titles over 200 characters and invalid dates are rejected with a
   message instead of being saved. Tags are limited to 10 per task, 30 characters each.
@@ -78,6 +83,8 @@ src/
     recurrence.js        repeat options and next due date (month-end aware, catches up)
     priority.js          priority levels (none / low / medium / high)
     stats.js             task counts (open / done / total) for the footer
+    search.js            search terms from the box; title/tag matching
+    dueFilter.js         due-date filter: overdue / today / this week / no date
     tasks.js             validate new and edited input, clean tags, complete a task (+ next copy)
     filters.js           status / tag / recurring / priority filters, tags in use, sorting
   services/
@@ -96,6 +103,7 @@ src/
     taskList.js          visible tasks (+ the one being edited) + empty state
     taskItem.js          one task row: priority badge, Edit and Delete
     taskFooter.js        footer text "N open · M done", hidden when empty
+    searchBox.js         search input: sends text as you type; × and Esc clear it
 tests/                   node --test: domain, data (incl. IndexedDB via a fake), service (tests/support/)
 styles.css               styling (light and dark)
 ```
