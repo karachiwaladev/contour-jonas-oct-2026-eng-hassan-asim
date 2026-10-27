@@ -100,3 +100,4 @@ li.editing { display: block; }
 button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
 .form-error { margin: 0; color: var(--danger); font-size: 14px; }
 .filters .field select { flex: 0 1 auto; padding: 4px 8px; }
+#task-footer { margin-top: 8px; color: var(--muted); font-size: 14px; text-align: center; }
