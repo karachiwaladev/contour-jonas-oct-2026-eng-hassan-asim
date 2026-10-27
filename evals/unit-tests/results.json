@@ -3,9 +3,9 @@
   "score": 88,
   "target": {
     "project": "todo",
-    "label": "Ticket #6 (issue #12, PR #13)"
+    "label": "Ticket #9 (issue #16)"
   },
-  "ranAt": "2026-10-27T05:54:02.399Z",
+  "ranAt": "2026-10-27T06:04:30.095Z",
   "cases": [
     {
       "id": "tests-pass",
@@ -15,7 +15,7 @@
     {
       "id": "has-tests",
       "pass": true,
-      "detail": "64 tests"
+      "detail": "69 tests"
     },
     {
       "id": "no-skipped-or-todo",
@@ -40,12 +40,12 @@
     {
       "id": "core-modules-tested",
       "pass": true,
-      "detail": "all 9 core modules imported by tests"
+      "detail": "all 10 core modules imported by tests"
     },
     {
       "id": "ui-modules-tested",
       "pass": false,
-      "detail": "not imported by any test: src/main.js, src/ui/dom.js, src/ui/filterBar.js, src/ui/labels.js, src/ui/taskEditor.js, src/ui/taskFields.js, src/ui/taskForm.js, src/ui/taskItem.js, src/ui/taskList.js"
+      "detail": "not imported by any test: src/main.js, src/ui/dom.js, src/ui/filterBar.js, src/ui/labels.js, src/ui/taskEditor.js, src/ui/taskFields.js, src/ui/taskFooter.js, src/ui/taskForm.js, src/ui/taskItem.js, src/ui/taskList.js"
     }
   ]
 }

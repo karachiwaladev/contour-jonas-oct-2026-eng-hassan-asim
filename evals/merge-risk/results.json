@@ -1,27 +1,27 @@
 {
   "eval": "merge-risk",
-  "score": 78,
+  "score": 100,
   "target": {
-    "base": "cddcbb2e098ec3a4bd24233fe6822898b0358306",
-    "head": "3ba706b8bb07ef88e0c9f8e04a7c354602398479",
-    "label": "Ticket #6 (issue #12, PR #13)"
+    "base": "f4527edcaf7e2f262b3d685b33c8578dc1e8d89e",
+    "head": "4950151ed759a1899c9d7df18d8291e32b1c4c21",
+    "label": "Ticket #9 (issue #16)"
   },
-  "ranAt": "2026-10-27T05:54:03.146Z",
+  "ranAt": "2026-10-27T06:04:30.352Z",
   "cases": [
     {
       "id": "small-diff",
-      "pass": false,
-      "detail": "437 text lines changed (max 400)"
+      "pass": true,
+      "detail": "54 text lines changed (max 400)"
     },
     {
       "id": "few-files",
-      "pass": false,
-      "detail": "37 files changed (max 20)"
+      "pass": true,
+      "detail": "14 files changed (max 20)"
     },
     {
       "id": "tests-with-source",
       "pass": true,
-      "detail": "13 source files, 6 test files changed"
+      "detail": "3 source files, 1 test files changed"
     },
     {
       "id": "no-deleted-files",
@@ -54,5 +54,5 @@
       "detail": "projects touched: todo"
     }
   ],
-  "risk": "medium"
+  "risk": "low"
 }
