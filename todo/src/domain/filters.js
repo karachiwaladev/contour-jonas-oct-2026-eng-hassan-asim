@@ -8,14 +8,15 @@ import { parseQuery, matchesSearch } from './search.js';
 export const DEFAULT_FILTER = Object.freeze({ status: 'all', tag: null, recurring: false, priority: null, due: 'any', query: '' });
 export const STATUSES = ['all', 'active', 'done'];
 
-/** `today` ('YYYY-MM-DD') is needed for the due filter; omitted, due filtering is skipped. */
+/** `today` ('YYYY-MM-DD') is required whenever a due filter other than 'any' is set. */
 export function matchesFilter(task, filter, today) {
+  if (filter.due && filter.due !== 'any' && !today) throw new Error('matchesFilter: a due filter needs today');
   if (filter.status === 'active' && task.done) return false;
   if (filter.status === 'done' && !task.done) return false;
   if (filter.tag && !task.tags.includes(filter.tag)) return false;
   if (filter.recurring && !isRecurring(task)) return false;
   if (filter.priority && task.priority !== filter.priority) return false;
-  if (today && !matchesDue(task, filter.due, today)) return false;
+  if (!matchesDue(task, filter.due, today)) return false;
   return matchesSearch(task, parseQuery(filter.query));
 }
 

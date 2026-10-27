@@ -24,8 +24,10 @@ async function render() {
   filter = reconcileFilter(filter, tags);
 
   const { today } = clock();
-  const visible = all.filter((t) => matchesFilter(t, filter, today));
-  if (!visible.some((t) => t.id === editingId)) editingId = null; // a filter hid the task being edited
+  // The task being edited stays visible even if a filter or the search would hide it, so typing in
+  // the search box never throws away unsaved edits. Only deleting the task closes its editor.
+  if (!all.some((t) => t.id === editingId)) editingId = null;
+  const visible = all.filter((t) => t.id === editingId || matchesFilter(t, filter, today));
 
   renderTaskFooter($('task-footer'), countTasks(all));
   renderFilterBar($('status-filter'), $('tag-filter'), { priority: $('priority-filter'), due: $('due-filter') }, { filter, tags, onChange: updateFilter });

@@ -15,6 +15,8 @@ export function bindSearchBox(input, clearBtn, onChange) {
     send();
     input.focus();
   };
+  input.value = ''; // the search isn't kept across reloads, whatever the browser restores
+  clearBtn.hidden = true;
   input.addEventListener('input', send);
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && input.value !== '') {

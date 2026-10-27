@@ -77,3 +77,9 @@ test('matchesFilter combines search and due with status, tag, recurring and prio
   assert.equal(pick({ query: 'rent', priority: 'high' }), 1);
   assert.equal(pick({ query: 'nothing' }), 0);
 });
+
+test('a due filter without today is an error, not a silent skip; "any" needs no today', () => {
+  const t = task('a', [], { due: today });
+  assert.throws(() => matchesFilter(t, { ...DEFAULT_FILTER, due: 'today' }), /needs today/);
+  assert.equal(matchesFilter(t, DEFAULT_FILTER), true);
+});
