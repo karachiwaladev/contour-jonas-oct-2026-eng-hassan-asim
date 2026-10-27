@@ -34,6 +34,7 @@ project folder or skill and leave a one-line pointer in the index.
 | `.claude/hooks/guard-bash.sh` | PreToolUse hook (+ `guard-normalize.pl`, `guard-args.pl`): blocks main pushes, force/merge/destructive commands, paid deepsec, secret reads/exfiltration, `curl \| sh`; gates `gh pr create` |
 | `.claude/hooks/guard-files.mjs`, `screen-output.mjs` | Prompt-injection guards: Edit/Write/Read limits (no secrets, harness read-only on ticket branches); screen fetched ticket/web text and warn or block |
 | `.claude/skills/factory-loop/injection/` | Ticket screener (`screen.mjs`): content rules → clean / suspicious / malicious, run before acting on any ticket |
+| `.claude/skills/persona-swarm/` | Persona swarm: 5 of 6 persona agents (local Claude subagents + headless Chrome, localhost only) test a build and produce a shoal-style friction map |
 | `.claude/hooks/log-prompts.sh` | Stop hook (wired in `.claude/settings.json`): logs typed prompts |
 | `.claude/hooks/auto-commit.sh` | Stop hook: commits and pushes pending changes on the current work branch, never `main` (no deletions, no secrets, no force) |
 | `.claude/skills/factory-loop/coverage/` | Coverage eval: did the agent write unit tests? thresholds can only be tightened per project (`package.json` "coverage"); `.claude/hooks/coverage-report.sh` reports it on every Stop |
