@@ -8,7 +8,8 @@
 #   3. sinks      no unsafe DOM/JS sinks in changed source or HTML (innerHTML, eval, onclick=, …)
 #   4. secrets    no likely keys/tokens in added lines
 #   5. deepsec    free regex scan (`deepsec scan`); candidates in changed files listed for triage
-# Exits 1 if any of checks 1–4 fail, or if the base ref is missing (fails closed). deepsec
+#   6. harness    a ticket branch (factory/issue-*) may not change .claude/ (except logs) or .github/
+# Exits 1 if any of checks 1–4 or 6 fail, or if the base ref is missing (fails closed). deepsec
 # candidates are warnings: triage them in the PR.
 #
 #   quality-gate.sh [base-ref]      (default: origin/main)
@@ -35,6 +36,15 @@ deleted=$( { git diff --name-only --diff-filter=D "$base"...HEAD && git diff --n
 src_re='\.(m?js|cjs|ts|jsx|tsx)$'
 web_re='\.(m?js|cjs|ts|jsx|tsx|html?)$'
 # Projects = changed top-level folders, skipping dot-folders (harness, deepsec workspace).
+# A ticket can't change the rules that check it (prompt-injection backstop). GATE_BRANCH is set by
+# guard-bash.sh when it checks a --head branch in a detached worktree.
+gate_branch=${GATE_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}
+if [[ "$gate_branch" == factory/issue-* ]]; then
+  harness=$( { git diff --name-only "$base"...HEAD; git diff --name-only HEAD; } | sort -u | grep -E '^(\.claude/|\.github/)' | grep -v '^\.claude/logs/')
+  if [ -n "$harness" ]; then bad "harness: ticket branch $gate_branch changes harness files (owner-only, on a harness branch):"; sed 's/^/      /' <<<"$harness"
+  else ok "harness: ticket branch leaves .claude/ and .github/ alone"; fi
+fi
+
 projects=$(printf '%s\n%s\n' "$changed" "$deleted" | grep '/' | cut -d/ -f1 | grep -v '^\.' | sort -u)
 [ -z "$projects" ] && echo "  (no project folders changed)"
 

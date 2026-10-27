@@ -1,16 +1,18 @@
 #!/usr/bin/env node
-// Runs both evals and writes their results.json files.
+// Runs the evals and writes their results.json files.
 //
 //   node evals/run.mjs [--project todo] [--base origin/main] [--head HEAD] [--label "Ticket #6"]
 //
 // unit-tests scores <project>'s unit tests (as of the working tree); merge-risk scores the diff
-// base...head. Prints one summary line per eval; exits 1 if either results file would be invalid.
+// base...head; prompt-injection scores the ticket screener on prompt-injection/samples.json.
+// Prints one summary line per eval; throws if any results file would be invalid.
 import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildResults, summary, writeResults } from './lib/results.mjs';
 import { gatherUnitFacts, unitTestCases } from './unit-tests/eval.mjs';
 import { gatherDiffFacts, mergeRiskCases, riskLevel } from './merge-risk/eval.mjs';
+import { loadSamples, promptInjectionCases } from './prompt-injection/eval.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -24,7 +26,7 @@ export function parseArgs(argv) {
   return opts;
 }
 
-/** Runs both evals against `root` and writes results under `outDir`. Returns both results. */
+/** Runs the evals against `root` and writes results under `outDir`. Returns the results. */
 export function runEvals({ root, outDir = here, project, base, head, label, ranAt }) {
   const sha = (ref) => execFileSync('git', ['rev-parse', ref], { cwd: root, encoding: 'utf8' }).trim();
   const unit = buildResults('unit-tests', { project, label }, unitTestCases(gatherUnitFacts(join(root, project))), ranAt);
@@ -33,15 +35,18 @@ export function runEvals({ root, outDir = here, project, base, head, label, ranA
   const risk = buildResults('merge-risk', { base: sha(base), head: sha(head), label }, riskCases, ranAt);
   risk.risk = riskLevel(risk.score);
   writeResults(join(outDir, 'unit-tests', 'results.json'), unit);
+  const injection = buildResults('prompt-injection', { samples: 'evals/prompt-injection/samples.json', label }, promptInjectionCases(loadSamples()), ranAt);
   writeResults(join(outDir, 'merge-risk', 'results.json'), risk);
-  return { unit, risk };
+  writeResults(join(outDir, 'prompt-injection', 'results.json'), injection);
+  return { unit, risk, injection };
 }
 
 export function main(argv, root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim(), outDir = here) {
-  const { unit, risk } = runEvals({ root, outDir, ...parseArgs(argv) });
+  const { unit, risk, injection } = runEvals({ root, outDir, ...parseArgs(argv) });
   console.log(summary(unit));
   console.log(`${summary(risk)} — ${risk.risk} risk`);
-  for (const c of [...unit.cases, ...risk.cases]) console.log(`  ${c.pass ? '✓' : '✗'} ${c.id}: ${c.detail}`);
+  console.log(summary(injection));
+  for (const c of [...unit.cases, ...risk.cases, ...injection.cases]) console.log(`  ${c.pass ? '✓' : '✗'} ${c.id}: ${c.detail}`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2));
