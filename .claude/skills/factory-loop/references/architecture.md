@@ -29,7 +29,7 @@ ES modules need http, not `file://` — README run instructions must use a local
    parameters. That makes them deterministic under test.
 4. **Components:** a component builds and returns its element from props and callbacks
    (`onToggle`, `onDelete`); it never talks to storage directly. Render text with `textContent`.
-5. **State:** one place owns app state (in `main.js` or `src/state.js`); components get what they need.
+5. **State:** one place owns app state (in `main.js`, or a dedicated state module beside it); components get what they need.
 6. **No globals** except what `index.html` needs to boot; no `window.*` sharing between files.
 7. **Small, named exports**; no default-export grab bags.
 

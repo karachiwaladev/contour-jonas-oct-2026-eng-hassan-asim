@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { asExpression, asStatements, isSyntaxError } from './screenshot-steps.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name, def) => {
@@ -86,9 +87,9 @@ try {
   mkdirSync(outDir, { recursive: true });
   for (const step of steps) {
     if (step.js) {
-      const res = await send('Runtime.evaluate', {
-        expression: `(async () => { ${step.js} })()`, awaitPromise: true, returnByValue: true,
-      });
+      const run = (expression) => send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+      let res = await run(asExpression(step.js));
+      if (res.exceptionDetails && isSyntaxError(res.exceptionDetails)) res = await run(asStatements(step.js));
       if (res.exceptionDetails) {
         errors++;
         console.error(`step ${step.name} failed: ${res.exceptionDetails.exception?.description}`);

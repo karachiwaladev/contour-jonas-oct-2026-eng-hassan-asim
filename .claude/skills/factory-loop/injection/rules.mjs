@@ -11,6 +11,8 @@ const W = String.raw`[\s\S]{0,60}?`; // a short gap of any text between two key 
 export const RULES = Object.freeze([
   // Overriding the agent's instructions or identity.
   { id: 'override-instructions', severity: 'malicious', re: new RegExp(String.raw`\b(ignore|disregard|forget|override|bypass)\b${W}\b(previous|prior|above|earlier|all|any|your|the|these|system)\b${W}\b(instructions?|rules?|prompts?|directions?|guidelines?|guardrails?|constraints?)\b`, 'i') },
+  // The same override in other languages (the eval's non-English sample was a known miss).
+  { id: 'override-instructions-i18n', severity: 'malicious', re: /\b(ignora|ignorez|ignoriere|ignorieren|olvida|vergiss|esquece|dimentica)\b[\s\S]{0,40}\b(instrucciones|instructions|anweisungen|instruções|istruzioni|reglas|règles|regeln|regras|regole)\b/i },
   { id: 'role-hijack', severity: 'malicious', re: /\b(you are now|from now on,? you|act as (an? )?(unrestricted|jailbroken|different)|developer mode|DAN mode|new (system )?instructions?:)/i },
   { id: 'fake-role-tags', severity: 'malicious', re: /<\/?\s*(system|assistant|developer)\s*>|\[\/?INST\]|<\|im_(start|end)\|>|^#{1,3}\s*system\s*(prompt)?\s*:?\s*$/im },
   { id: 'system-prompt-probe', severity: 'malicious', re: /\b(reveal|print|show|repeat|output|leak)\b[\s\S]{0,40}\b(system prompt|your (instructions|prompt|rules)|CLAUDE\.md|SKILL\.md)\b/i },
@@ -51,6 +53,11 @@ export function excerpt(text, index, length) {
   return raw.replace(/[\u0000-\u001F\u007F-\u009F​-‏⁠-⁤﻿‪-‮⁦-⁩]/gu,
     (c) => (c === '\n' ? ' ' : `\\u${c.codePointAt(0).toString(16).padStart(4, '0')}`)).slice(0, 80);
 }
+
+// What a reader sees on GitHub: HTML comments and invisible characters removed.
+export const visibleText = (text) => String(text ?? '')
+  .replace(/<!--[\s\S]*?-->/g, ' ')
+  .replace(/[\u200B-\u200F\u2060-\u2064\uFEFF\u202A-\u202E\u2066-\u2069\u{E0000}-\u{E007F}]/gu, '');
 
 /** Findings for one piece of text (the loop's own comments are filtered out before this). */
 export function screenText(text, where = 'text') {

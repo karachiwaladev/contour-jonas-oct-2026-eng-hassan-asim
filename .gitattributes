@@ -1,0 +1,2 @@
+# Append-only logs: merge both sides line by line instead of conflicting.
+.claude/logs/prompts.jsonl merge=union
