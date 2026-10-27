@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs, runEvals, main } from '../run.mjs';
 import { validate } from '../lib/results.mjs';
+import { loadSamples } from '../prompt-injection/eval.mjs';
 import { repoWith, SUM, SUM_TEST } from './support.js';
 
 test('parseArgs has defaults and rejects unknown or incomplete options', () => {
@@ -38,5 +39,5 @@ test('main prints a summary line per eval and every case', (t) => {
   assert.match(lines[0], /^unit-tests: \d+\/100/);
   assert.match(lines[1], /^merge-risk: \d+\/100 .* risk$/);
   assert.match(lines[2], /^prompt-injection: \d+\/100/);
-  assert.equal(lines.length, 3 + 8 + 9 + 12);
+  assert.equal(lines.length, 3 + 8 + 9 + loadSamples().length);
 });

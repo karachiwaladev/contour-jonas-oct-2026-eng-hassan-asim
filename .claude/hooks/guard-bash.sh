@@ -75,6 +75,20 @@ if at 'gh[[:space:]]+pr[[:space:]]+create'; then
   dir=$(grep -E '^cd[[:space:]]' <<<"$segs" | tail -1 | sed -E 's/^cd[[:space:]]+//; s/[[:space:]].*//')
   dir=${dir:-$root}
   head=$(grep -E '^gh[[:space:]]+pr[[:space:]]+create' <<<"$segs" | grep -oE -- '--head[[:space:]=]+[^[:space:]]+' | head -1 | sed -E 's/--head[[:space:]=]+//')
+  # A ticket PR must carry the full report, so a skipped review or eval blocks the PR instead of
+  # going unnoticed (self-healing cause C2). The body has to come from a file to be checkable.
+  pr_branch=${head:-$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)}
+  if [[ "$pr_branch" == factory/issue-* ]]; then
+    bf=$(grep -E '^gh[[:space:]]+pr[[:space:]]+create' <<<"$kseg" | grep -oE -- '--body-file[[:space:]=]+[^[:space:]]+' | head -1 | sed -E 's/--body-file[[:space:]=]+//')
+    [ -n "$bf" ] || block "ticket PRs need --body-file with the full report (Tests, Evals, Code review, Security)."
+    [[ "$bf" = /* ]] || bf="$dir/$bf"
+    [ -f "$bf" ] || block "PR body file $bf not found."
+    missing=""
+    for need in '## Tests' '## Evals' '## Code review' 'Independent reviewer' '## Security'; do
+      grep -qiF -- "$need" "$bf" || missing="$missing, $need"
+    done
+    [ -z "$missing" ] || block "PR body is missing:${missing#,} — do the step, then report it (references/code-review.md)."
+  fi
   tmp=""
   if [ -n "$head" ] && [ "$head" != "$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)" ]; then
     tmp=$(mktemp -d "${TMPDIR:-/tmp}/gate-XXXXXX")

@@ -3,7 +3,9 @@
 //
 //   node screen.mjs --repo OWNER/REPO --issue N      (or --pr N; or --file ticket.json offline)
 //
-// Prints JSON: { verdict, findings }. Exit 0 clean, 1 suspicious, 2 malicious, 3 error.
+// Prints JSON: { verdict, visibleVerdict, findings }. Exit 0 clean, 1 suspicious, 2 malicious, 3 error
+// (from `verdict`). `visibleVerdict` screens only what a reader sees (HTML comments and invisible
+// characters removed): malicious overall but clean visible means the attack is hidden content only.
 // The verdict is about *content*, never the author: a legitimate person can paste or forward a
 // malicious payload, so the title, body and every comment are screened the same way whoever wrote
 // them. The one exception is the loop's own comments (its login *and* its marker), which are
@@ -11,7 +13,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { screenText, worst } from './rules.mjs';
+import { screenText, worst, visibleText } from './rules.mjs';
 
 const isLoopComment = (c, loopLogin) => c.login === loopLogin && /<!--\s*factory-loop/.test(c.body ?? '');
 
@@ -20,11 +22,11 @@ const isLoopComment = (c, loopLogin) => c.login === loopLogin && /<!--\s*factory
  * @param loopLogin GitHub login the loop posts as
  */
 export function screenTicket(ticket, loopLogin) {
-  const findings = [...screenText(ticket.title, 'title'), ...screenText(ticket.body, 'body')];
-  for (const c of ticket.comments ?? []) {
-    if (!isLoopComment(c, loopLogin)) findings.push(...screenText(c.body, `comment ${c.id}`));
-  }
-  return { verdict: worst(findings.map((f) => f.severity)), findings };
+  const parts = [['title', ticket.title], ['body', ticket.body],
+    ...(ticket.comments ?? []).filter((c) => !isLoopComment(c, loopLogin)).map((c) => [`comment ${c.id}`, c.body])];
+  const findings = parts.flatMap(([where, text]) => screenText(text, where));
+  const visible = parts.flatMap(([where, text]) => screenText(visibleText(text), where));
+  return { verdict: worst(findings.map((f) => f.severity)), visibleVerdict: worst(visible.map((f) => f.severity)), findings };
 }
 
 const EXIT = { clean: 0, suspicious: 1, malicious: 2 };

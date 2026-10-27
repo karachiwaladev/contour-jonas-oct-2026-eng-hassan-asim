@@ -1,6 +1,6 @@
 # Security gate (free tools only)
 
-**Only free tools.** deepsec's paid stages — `process`, `revalidate`, `triage`, `enrich`, `sandbox`,
+**Only free tools.** deepsec's paid stages — `process`, `revalidate`, `triage`, `enrich`, `sandbox`, `setup`,
 and a full `deepsec init` (it starts AI processing) — are **never** run; the Bash guard hook blocks
 them. Everything below is local and costs nothing.
 
