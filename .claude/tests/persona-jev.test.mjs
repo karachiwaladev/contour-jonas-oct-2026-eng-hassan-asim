@@ -1,7 +1,10 @@
 // Jev engine for the persona swarm (.claude/skills/persona-swarm/jev*.mjs). Run: node --test '.claude/tests/*.test.mjs'
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildOptions, inputFor, detectLoop, findingsFromRun, toResult, PERSONA_INPUTS, JEV_MODEL } from '../skills/persona-swarm/jev-lib.mjs';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { buildOptions, inputFor, detectLoop, findingsFromRun, toResult, providerFor, PERSONA_INPUTS, JEV_MODEL } from '../skills/persona-swarm/jev-lib.mjs';
 import { decide, loadKey, parseArgs } from '../skills/persona-swarm/jev.mjs';
 import { validateAgentResult, ALWAYS } from '../skills/persona-swarm/lib.mjs';
 import { loadPanel } from '../skills/persona-swarm/swarm.mjs';
@@ -95,10 +98,10 @@ test('findingsFromRun: a clean completed run has no findings; out of patience is
 });
 
 test('toResult produces a results file that swarm.mjs report accepts', () => {
-  const r = toResult({ persona: ALWAYS, outcome: 'completed', steps: 4, goal: 'g', findings: [], trace: [], cost: 0.0001 });
+  const r = toResult({ persona: ALWAYS, outcome: 'completed', steps: 4, goal: 'g', findings: [], trace: [], cost: 0.0001, model: 'jev-1.14.0' });
   assert.deepEqual(validateAgentResult(r), []);
   assert.equal(r.engine, 'jev');
-  assert.equal(r.model, JEV_MODEL);
+  assert.equal(r.model, 'jev-1.14.0');
 });
 
 const okBody = { answers: { action: { choice: 'CLICK:2', confidence: 0.93 } }, usage: { cost: 0.00002 } };
@@ -111,6 +114,22 @@ const fakeFetch = (replies) => {
   };
   return { fn, calls };
 };
+
+test('providerFor routes TypeSafe keys direct and everything else to OpenRouter', () => {
+  const ts = providerFor('apikey_abc');
+  assert.equal(ts.url, 'https://api.typesafe.ai/v1/systemone');
+  assert.equal(ts.model, 'jev-1.14.0');
+  assert.equal(providerFor('sk-or-v1-abc').url, 'https://openrouter.ai/api/alpha/decisions');
+  assert.equal(providerFor('sk-or-v1-abc').model, JEV_MODEL);
+});
+
+test('decide talks to TypeSafe directly for an apikey_ key and prices by input tokens', async () => {
+  const { fn, calls } = fakeFetch([{ status: 200, body: { answers: { action: { choice: 'CLICK:2', confidence: 0.9 } }, usage: { input_tokens: 1000 } } }]);
+  const d = await decide({ state: {}, criteria: { 'CLICK:2': 'x' }, goal: 'g' }, { key: 'apikey_test', fetchFn: fn });
+  assert.equal(calls[0].url, 'https://api.typesafe.ai/v1/systemone');
+  assert.equal(JSON.parse(calls[0].init.body).model, 'jev-1.14.0');
+  assert.ok(Math.abs(d.cost - 0.000042) < 1e-12, String(d.cost));
+});
 
 test('decide posts one choice question to OpenRouter with a bearer key', async () => {
   const { fn, calls } = fakeFetch([{ status: 200, body: okBody }]);
@@ -139,9 +158,16 @@ test('decide rejects a choice that was not offered', async () => {
   await assert.rejects(decide({ state: {}, criteria: { 'CLICK:2': 'x' }, goal: 'g' }, { key: 'k', fetchFn: fn }), /not offered/);
 });
 
-test('loadKey prefers the environment and explains a missing key', () => {
+test('loadKey prefers TYPESAFE_API_KEY, then OPENROUTER_API_KEY, and explains a missing key', () => {
   assert.equal(loadKey({ env: { OPENROUTER_API_KEY: 'sk-env' }, envFile: '/nonexistent' }), 'sk-env');
-  assert.throws(() => loadKey({ env: {}, envFile: '/nonexistent' }), /OPENROUTER_API_KEY/);
+  assert.equal(loadKey({ env: { OPENROUTER_API_KEY: 'sk-env', TYPESAFE_API_KEY: 'apikey_x' }, envFile: '/nonexistent' }), 'apikey_x');
+  assert.throws(() => loadKey({ env: {}, envFile: '/nonexistent' }), /TYPESAFE_API_KEY/);
+});
+
+test('loadKey reads either name from an env file, stripping quotes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'jevkey-'));
+  writeFileSync(join(dir, '.env'), 'OTHER=1\nTYPESAFE_API_KEY="apikey_q"\n');
+  assert.equal(loadKey({ env: {}, envFile: join(dir, '.env') }), 'apikey_q');
 });
 
 test('parseArgs: url must be local, goals file and results dir required', () => {

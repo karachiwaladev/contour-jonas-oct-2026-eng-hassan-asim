@@ -1,57 +1,63 @@
 #!/usr/bin/env node
-// Jev-driven persona swarm: each picked persona gets its own headless Chrome, and Jev (OpenRouter
-// typesafe/jev-1.13, a small decision model) picks every step from the options offered. All 5
-// personas run in parallel; results land in the same schema as the Claude agents' files.
+// Jev-driven persona swarm: each picked persona gets its own headless Chrome, and Jev (TypeSafe's
+// small decision model) picks every step from the options offered. All 5 personas run in parallel;
+// results land in the same schema as the Claude agents' files.
 //
 //   jev.mjs <runKey> <url> <goals.json> <resultsDir> [--only <personaId>]
 //
 // goals.json: { "<personaId>": "goal in plain English", "*": "goal for anyone not listed" }
-// Needs OPENROUTER_API_KEY (environment, or the repo's .env). The key is sent only to OpenRouter and
-// never printed. Only localhost targets are allowed.
+// Needs TYPESAFE_API_KEY (apikey_…, sent to api.typesafe.ai) or OPENROUTER_API_KEY (sk-or-…), from
+// the environment or the repo's .env. The key goes only to its provider and is never printed.
+// Only localhost targets are allowed.
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { pickPersonas, isLocalUrl } from './lib.mjs';
-import { buildOptions, inputFor, detectLoop, findingsFromRun, toResult, JEV_MODEL } from './jev-lib.mjs';
+import { buildOptions, inputFor, detectLoop, findingsFromRun, toResult, providerFor } from './jev-lib.mjs';
 import { sleep, launchChrome, connect, evaluate, instrument, click, type, clear, key as pressKey, status, SNAPSHOT } from './cdp.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const REPO_ENV = resolve(here, '../../../.env');
-const JEV_URL = 'https://openrouter.ai/api/alpha/decisions';
 const RULES = 'Choose the one operation that advances the goal from this page, the way this persona would. '
   + 'Do not repeat a step that is already satisfied.';
 
-/** OPENROUTER_API_KEY from the environment, else from the repo .env (that one key only). */
+const KEY_NAMES = ['TYPESAFE_API_KEY', 'OPENROUTER_API_KEY'];
+
+/** The Jev key from the environment, else from the repo .env (only these key names are read). */
 export function loadKey({ env = process.env, envFile = REPO_ENV } = {}) {
-  if (env.OPENROUTER_API_KEY) return env.OPENROUTER_API_KEY;
+  for (const name of KEY_NAMES) if (env[name]) return env[name];
   if (existsSync(envFile)) {
-    const line = readFileSync(envFile, 'utf8').split('\n').find((l) => /^\s*OPENROUTER_API_KEY\s*=/.test(l));
-    const value = line?.split('=').slice(1).join('=').trim().replace(/^(['"])(.*)\1$/, '$2');
-    if (value) return value;
+    const lines = readFileSync(envFile, 'utf8').split('\n');
+    for (const name of KEY_NAMES) {
+      const line = lines.find((l) => new RegExp(`^\\s*${name}\\s*=`).test(l));
+      const value = line?.split('=').slice(1).join('=').trim().replace(/^(['"])(.*)\1$/, '$2');
+      if (value) return value;
+    }
   }
-  throw new Error('Set OPENROUTER_API_KEY (environment or the repo .env) for the Jev engine: https://openrouter.ai/keys');
+  throw new Error('Set TYPESAFE_API_KEY (https://console.typesafe.ai/keys) or OPENROUTER_API_KEY, in the environment or the repo .env, for the Jev engine');
 }
 
 /** One Jev choice over the offered option keys. Retries 429/5xx/network errors; errors never contain the key. */
 export async function decide({ state, criteria, goal, rules = RULES }, { key, fetchFn = fetch, tries = 4, backoffMs = 400 }) {
-  const body = JSON.stringify({ model: JEV_MODEL, state, questions: { action: { type: 'choice', criteria, instructions: { goal, rules } } } });
+  const provider = providerFor(key);
+  const body = JSON.stringify({ model: provider.model, state, questions: { action: { type: 'choice', criteria, instructions: { goal, rules } } } });
   const scrub = (s) => String(s).split(key).join('***').slice(0, 160);
   for (let k = 0; ; k++) {
-    const res = await fetchFn(JEV_URL, { method: 'POST', signal: AbortSignal.timeout(30000),
+    const res = await fetchFn(provider.url, { method: 'POST', signal: AbortSignal.timeout(30000),
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body })
       .catch((e) => ({ ok: false, status: 0, text: async () => String(e) }));
     if (res.ok) {
       const j = await res.json();
       const { choice, confidence } = j.answers?.action ?? {};
       if (!(choice in criteria)) throw new Error(`Jev picked "${scrub(choice)}", which was not offered`);
-      return { choice, confidence: confidence ?? 0, cost: j.usage?.cost ?? 0 };
+      return { choice, confidence: confidence ?? 0, cost: j.usage?.cost ?? (j.usage?.input_tokens ?? 0) * provider.usdPerInputToken };
     }
     if (k + 1 < tries && (res.status === 0 || res.status === 429 || res.status >= 500)) {
       await sleep(backoffMs * 2 ** k);
       continue;
     }
-    const hint = [401, 403].includes(res.status) ? ' (check OPENROUTER_API_KEY: an OpenRouter key starts with sk-or-, no quotes or spaces)' : '';
+    const hint = [401, 403].includes(res.status) ? ` (${provider.name} rejected the key: TypeSafe keys start with apikey_, OpenRouter keys with sk-or-)` : '';
     throw new Error(`Jev HTTP ${res.status}: ${scrub(await res.text())}${hint}`);
   }
 }
@@ -122,7 +128,7 @@ export async function runPersona({ persona, goal, url, outDir, key }) {
     rmSync(session, { recursive: true, force: true });
   }
   const findings = findingsFromRun({ goal, outcome, lastTyped: seen.lastTyped ?? lastTyped, status: seen, loop, unlabeled });
-  return toResult({ persona: persona.id, outcome, steps: trace.length, goal, findings, trace, cost });
+  return toResult({ persona: persona.id, outcome, steps: trace.length, goal, findings, trace, cost, model: providerFor(key).model });
 }
 
 export async function main(argv) {

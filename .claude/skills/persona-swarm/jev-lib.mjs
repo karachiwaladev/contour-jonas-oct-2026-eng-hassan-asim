@@ -2,7 +2,12 @@
 // Follows quicke2e (github.com/dmoka/quicke2e): Jev only picks one of the options offered, text comes
 // from a fixed per-persona list (no model invents input), and code, not the model, decides findings.
 
-export const JEV_MODEL = 'typesafe/jev-1.13';
+export const JEV_MODEL = 'typesafe/jev-1.14';
+const TYPESAFE = { name: 'typesafe', url: 'https://api.typesafe.ai/v1/systemone', model: 'jev-1.14.0', usdPerInputToken: 0.042 / 1e6 };
+const OPENROUTER = { name: 'openrouter', url: 'https://openrouter.ai/api/alpha/decisions', model: JEV_MODEL, usdPerInputToken: 0 };
+
+/** Jev is served by TypeSafe directly (keys start with apikey_) and through OpenRouter (sk-or-…). */
+export const providerFor = (key) => (String(key).startsWith('apikey_') ? TYPESAFE : OPENROUTER);
 export const MAX_ELEMENTS = 40;
 export const MIN_STEPS_BEFORE_DONE = 3;
 
@@ -94,7 +99,7 @@ export function findingsFromRun({ goal, outcome, lastTyped, status, loop, unlabe
 }
 
 /** A results file in the same schema as the Claude agents', so `swarm.mjs report` reads both. */
-export function toResult({ persona, outcome, steps, goal, findings, trace, cost }) {
-  return { persona, outcome, steps, engine: 'jev', model: JEV_MODEL, summary: `Jev ${outcome} after ${steps} steps: ${clip(goal, 80)}`,
+export function toResult({ persona, outcome, steps, goal, findings, trace, cost, model = JEV_MODEL }) {
+  return { persona, outcome, steps, engine: 'jev', model, summary: `Jev ${outcome} after ${steps} steps: ${clip(goal, 80)}`,
     findings, cost: Number(cost.toFixed(6)), trace };
 }

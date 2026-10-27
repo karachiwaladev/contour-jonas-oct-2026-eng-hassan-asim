@@ -16,8 +16,8 @@ Keychain. Pulling that token out is credential handling the harness blocks. So t
 **Claude Code subagents of the current session**: free, with no API key and no extra service.
 
 ## Two engines
-- **`jev` (fast, default when `OPENROUTER_API_KEY` is set):** [quicke2e](https://github.com/dmoka/quicke2e)-style.
-  Jev (OpenRouter `typesafe/jev-1.13`, ~350 ms and ~$0.00002 per step) picks every step from the options
+- **`jev` (fast, default when `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY` is set):** [quicke2e](https://github.com/dmoka/quicke2e)-style.
+  Jev (TypeSafe `jev-1.14.0` direct for `apikey_…` keys, or OpenRouter for `sk-or-…`; ~300 ms and ~$0.00006 per step) picks every step from the options
   `jev.mjs` offers; text comes from a fixed per-persona list (the hacker's is the XSS probe set); code,
   not the model, turns dialogs, script errors, loops, dead ends and unlabelled controls into findings.
   All 5 personas run in parallel in one command. The **only paid API** the factory allows (the owner's key).
