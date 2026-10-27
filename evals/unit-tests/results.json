@@ -1,0 +1,51 @@
+{
+  "eval": "unit-tests",
+  "score": 88,
+  "target": {
+    "project": "todo",
+    "label": "Ticket #6 (issue #12, PR #13)"
+  },
+  "ranAt": "2026-10-27T04:43:29.384Z",
+  "cases": [
+    {
+      "id": "tests-pass",
+      "pass": true,
+      "detail": "0 failing, exit code 0"
+    },
+    {
+      "id": "has-tests",
+      "pass": true,
+      "detail": "64 tests"
+    },
+    {
+      "id": "no-skipped-or-todo",
+      "pass": true,
+      "detail": "0 skipped, 0 todo"
+    },
+    {
+      "id": "coverage-lines",
+      "pass": true,
+      "detail": "100.0% of core lines (min 90%)"
+    },
+    {
+      "id": "coverage-branches",
+      "pass": true,
+      "detail": "98.8% of core branches (min 80%)"
+    },
+    {
+      "id": "coverage-functions",
+      "pass": true,
+      "detail": "98.3% of core functions (min 90%)"
+    },
+    {
+      "id": "core-modules-tested",
+      "pass": true,
+      "detail": "all 9 core modules imported by tests"
+    },
+    {
+      "id": "ui-modules-tested",
+      "pass": false,
+      "detail": "not imported by any test: src/main.js, src/ui/dom.js, src/ui/filterBar.js, src/ui/labels.js, src/ui/taskEditor.js, src/ui/taskFields.js, src/ui/taskForm.js, src/ui/taskItem.js, src/ui/taskList.js"
+    }
+  ]
+}

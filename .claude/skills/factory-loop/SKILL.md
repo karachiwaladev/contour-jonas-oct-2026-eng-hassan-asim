@@ -26,6 +26,7 @@ PR. The ticket closes itself when the owner merges (the PR body says `Closes #N`
 | Coverage eval: every in-scope module tested, line/branch/function thresholds met | `references/tdd.md` § Coverage | quality gate + Stop hook |
 | Code review: checklist, `code-review` skill, independent reviewer | `references/code-review.md` | PR body |
 | Security: sinks, secrets, CSP, deepsec **free** scan, `security-review` skill | `references/security.md` | quality gate |
+| Evals: `unit-tests` + `merge-risk` scores, `results.json` committed after every build | `evals/README.md` | PR body + ticket reply |
 
 **Free tools only.** Never run paid services — no deepsec `process`/`revalidate`/`triage`/`sandbox`,
 no full `deepsec init`. `.claude/hooks/guard-bash.sh` (PreToolUse) blocks those, plus pushes to `main`,
@@ -190,17 +191,25 @@ considerations (`references/security.md`); and the browser checks you'll run in 
      actually shows the requirement before using it.
    If anything fails, fix and re-verify; don't report a feature you haven't seen working.
    Keep `steps.json` in the scratchpad, and stop the server afterwards.
-6. Commit the code, tests **and** `<project>/screenshots/issue-N/*.png` together on the ticket branch,
+6. **Run the evals** on the finished build, after the last code commit on the branch:
+   ```bash
+   node evals/run.mjs --project <project> --base origin/main --head HEAD --label "Ticket #N"
+   ```
+   It rewrites `evals/unit-tests/results.json` and `evals/merge-risk/results.json`. Don't edit them by
+   hand, and don't change an eval to raise a score. Fix the build, or explain a failing case in the PR.
+7. Commit the code, tests, `<project>/screenshots/issue-N/*.png` **and both `evals/*/results.json`** together on the ticket branch,
    push the branch, and open the PR ("Action tickets" steps 4–6). The PR body carries the full report:
    `Closes #N`, link to the approved plan, what changed (file paths, by layer), each requirement → how
-   it was met and which test covers it, **Tests** (`node --test` pass/fail counts and the coverage eval report table), **Code review** and
+   it was met and which test covers it, **Tests** (`node --test` pass/fail counts and the coverage eval report table),
+   **Evals** (the unit-tests and merge-risk scores and each failing case), **Code review** and
    **Security** sections (formats in the references), what was verified in the browser, and the
    screenshots embedded via
    `![01-…](https://github.com/OWNER/REPO/blob/SHA/<project>/screenshots/issue-N/01-….png?raw=true)`
    (SHA = the branch commit, so the images resolve before merge). End with **Not merged — ready for
    your review.**
-7. Comment on the ticket with the PR link and a 2–3 line summary, ending with `<!-- factory-loop -->`.
-   Don't close the ticket — merging the PR closes it.
+8. Comment on the ticket with the PR link, a 2–3 line summary **and the eval scores**
+   (`unit-tests: S/100`, `merge-risk: S/100 (risk level)`, with the failing case ids), ending with
+   `<!-- factory-loop -->`. Don't close the ticket — merging the PR closes it.
 
 ### Action tickets
 
@@ -215,6 +224,8 @@ Every change goes on its own branch and into a PR for the owner to review and me
    folder and update its README. Meet every requirement in the ticket explicitly (they're scored as checks); re-read the ticket before committing and tick each one off.
    Code changes follow `references/architecture.md` and `references/tdd.md` here too (tests first),
    and run `quality-gate.sh` + the `security-review` skill before step 5; docs-only changes skip tests.
+   After any code change, run the evals (`node evals/run.mjs --project <project> --label "Ticket #N"`)
+   and commit both `results.json` with the change.
 4. Stage only the files you made or changed (never `git add -A`; skip `.DS_Store` and other junk). Check `git diff --cached --stat` shows no deletions you didn't intend. Commit with message `<summary> (#N)`.
 5. `git push -u origin <branch>` (never `--force`, never to `main`). Then open the PR:
    ```bash
@@ -222,8 +233,9 @@ Every change goes on its own branch and into a PR for the owner to review and me
    ```
    The body says what changed, file paths, how each requirement was met, and ends with
    **Not merged — ready for your review.** Do not run `gh pr merge` or `--auto`.
-6. (Action tickets — feature tickets use Stage 3 step 4.) Comment on the ticket with the PR link and
-   how each requirement was met, ending with the `<!-- factory-loop -->` marker. Leave the ticket open.
+6. (Action tickets — feature tickets use Stage 3 steps 6–8.) Comment on the ticket with the PR link and
+   how each requirement was met (plus the eval scores if code changed), ending with the
+   `<!-- factory-loop -->` marker. Leave the ticket open.
 7. `git switch main` so the next ticket starts clean.
 
 ## Step 5 — Report
