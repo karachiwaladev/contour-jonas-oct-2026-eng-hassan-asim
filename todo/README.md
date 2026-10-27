@@ -24,6 +24,8 @@ database (IndexedDB), so they persist across reloads with no server.
 - **Edit**: click **Edit** on a task to change its title, due date, tags, repeat and priority in place.
   **Save** (or Enter) applies the same validation as adding; **Cancel** (or Esc) leaves it unchanged.
   Editing a recurring task changes only that copy; later copies inherit its title, tags and priority.
+- **Task count footer**: below the list, e.g. `3 open · 2 done`. It counts all tasks whatever the
+  filters, updates after every change, and is hidden when there are no tasks.
 - **Filter by status**: **All**, **Incomplete** or **Completed**.
 - **↻ Recurring** button: show only recurring tasks (combines with the other filters).
 - **Filter by tag**: pick one of the available tags (only tags in use are listed), or click a
@@ -75,6 +77,7 @@ src/
     dates.js             ISO calendar dates: validate, add days, days in month
     recurrence.js        repeat options and next due date (month-end aware, catches up)
     priority.js          priority levels (none / low / medium / high)
+    stats.js             task counts (open / done / total) for the footer
     tasks.js             validate new and edited input, clean tags, complete a task (+ next copy)
     filters.js           status / tag / recurring / priority filters, tags in use, sorting
   services/
@@ -92,6 +95,7 @@ src/
     filterBar.js         status chips, ↻ Recurring toggle, tag chips, priority menu
     taskList.js          visible tasks (+ the one being edited) + empty state
     taskItem.js          one task row: priority badge, Edit and Delete
+    taskFooter.js        footer text "N open · M done", hidden when empty
 tests/                   node --test: domain, data (incl. IndexedDB via a fake), service (tests/support/)
 styles.css               styling (light and dark)
 ```

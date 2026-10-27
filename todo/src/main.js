@@ -8,6 +8,8 @@ import { createTaskService } from './services/taskService.js';
 import { bindTaskForm } from './ui/taskForm.js';
 import { renderFilterBar } from './ui/filterBar.js';
 import { renderTaskList } from './ui/taskList.js';
+import { renderTaskFooter } from './ui/taskFooter.js';
+import { countTasks } from './domain/stats.js';
 
 const $ = (id) => document.getElementById(id);
 const clock = () => ({ now: Date.now(), today: isoDate(new Date()) });
@@ -23,6 +25,7 @@ async function render() {
   const visible = all.filter((t) => matchesFilter(t, filter));
   if (!visible.some((t) => t.id === editingId)) editingId = null; // a filter hid the task being edited
 
+  renderTaskFooter($('task-footer'), countTasks(all));
   renderFilterBar($('status-filter'), $('tag-filter'), $('priority-filter'), { filter, tags, onChange: updateFilter });
   renderTaskList($('tasks'), $('empty'), {
     visible,
