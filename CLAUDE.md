@@ -33,6 +33,7 @@ project folder or skill and leave a one-line pointer in the index.
 | `.claude/tests/` | Unit tests for the hooks and gate: `node --test '.claude/tests/*.test.mjs'` |
 | `.deepsec/` | deepsec workspace, **free `scan` stage only** (`cd .deepsec && npm install && npx deepsec scan`) |
 | `todo/` | Browser todo app (create / done / delete) backed by IndexedDB |
+| `evals/` | Evals of the factory's output: `unit-tests` and `merge-risk`, each with a committed `results.json`; run after every build |
 
 <!-- Add one row per project folder or skill. Keep descriptions to one line. -->
 

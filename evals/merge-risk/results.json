@@ -1,0 +1,58 @@
+{
+  "eval": "merge-risk",
+  "score": 78,
+  "target": {
+    "base": "cddcbb2e098ec3a4bd24233fe6822898b0358306",
+    "head": "3ba706b8bb07ef88e0c9f8e04a7c354602398479",
+    "label": "Ticket #6 (issue #12, PR #13)"
+  },
+  "ranAt": "2026-10-27T04:43:29.967Z",
+  "cases": [
+    {
+      "id": "small-diff",
+      "pass": false,
+      "detail": "437 text lines changed (max 400)"
+    },
+    {
+      "id": "few-files",
+      "pass": false,
+      "detail": "37 files changed (max 20)"
+    },
+    {
+      "id": "tests-with-source",
+      "pass": true,
+      "detail": "13 source files, 6 test files changed"
+    },
+    {
+      "id": "no-deleted-files",
+      "pass": true,
+      "detail": "no files deleted"
+    },
+    {
+      "id": "no-harness-changes",
+      "pass": true,
+      "detail": "no .claude/ or .github/ changes"
+    },
+    {
+      "id": "no-new-dependencies",
+      "pass": true,
+      "detail": "no dependencies added"
+    },
+    {
+      "id": "files-under-limit",
+      "pass": true,
+      "detail": "changed source files ≤ 150 lines"
+    },
+    {
+      "id": "no-unsafe-sinks",
+      "pass": true,
+      "detail": "no unsafe sinks added"
+    },
+    {
+      "id": "single-project",
+      "pass": true,
+      "detail": "projects touched: todo"
+    }
+  ],
+  "risk": "medium"
+}
