@@ -5,7 +5,9 @@
 #     (`bash <<EOF`, `cat <<EOF | sh`) — then the body is commands; for unquoted heredocs the
 #     $(...) / `...` substitutions in the body are kept, since the shell runs them;
 #   - strings run via `sh -c '...'` and $(...) / `...` substitutions are added as extra lines;
-#   - quoted text is replaced by Q, so messages and grep patterns can't look like commands;
+#   - quoted text is replaced by Q, so messages and grep patterns can't look like commands
+#     (with GUARD_KEEP_QUOTES=1 the quotes are dropped and the text kept, for checks on arguments
+#     such as file paths);
 #   - lines are split on ; & | && || ( ) { } and newlines, and leading keywords (then, do, if, !,
 #     env, sudo, command, exec, nohup, time, xargs) and VAR=value prefixes are removed.
 use strict;
@@ -16,7 +18,7 @@ my @extra;
 my $shell = qr/(?:^|[|;&(\s])(?:bash|sh|zsh)(?:\s|$)/;
 
 $s =~ s{<<-?[ \t]*(['"]?)(\w+)\1([^\n]*)\n(.*?)^\t*\2[ \t]*$}{
-  my ($quoted, $rest, $body) = ($1, $3, $4);
+  my ($quoted, $tag, $rest, $body) = ($1, $2, $3, $4); # inner matches below reset $1..$4
   my ($prefix) = ($` =~ /([^\n]*)\z/);
   if (($prefix . ' ' . $rest) =~ $shell) {
     push @extra, split /\n/, $body;
@@ -24,7 +26,7 @@ $s =~ s{<<-?[ \t]*(['"]?)(\w+)\1([^\n]*)\n(.*?)^\t*\2[ \t]*$}{
     push @extra, $1 while $body =~ /\$\(([^()]*)\)/g;
     push @extra, $1 while $body =~ /`([^`]*)`/g;
   }
-  "<<$2$rest";
+  "<<$tag$rest";
 }gmse;
 
 push @extra, $2 while $s =~ /\b(?:bash|sh|zsh)\s+(?:-\w+\s+)*-\w*c\s+(['"])(.*?)\1/g;
@@ -35,9 +37,25 @@ $unquoted =~ s/\\./E/g;
 push @extra, $1 while $unquoted =~ /\$\(([^()]*)\)/g;
 push @extra, $1 while $unquoted =~ /`([^`]*)`/g;
 
+# GUARD_FLAT=1: the executed text unsplit (pipes kept), quoted text as Q, heredoc file bodies gone.
+if ($ENV{GUARD_FLAT}) {
+  for my $text ($s, @extra) {
+    (my $t = $text) =~ s/'[^']*'/Q/g;
+    $t =~ s/"(?:[^"\\]|\\.)*"/Q/g;
+    print "$t\n";
+  }
+  exit 0;
+}
+
 for my $text ($s, @extra) {
-  (my $t = $text) =~ s/'[^']*'/Q/g;
-  $t =~ s/"(?:[^"\\]|\\.)*"/Q/g;
+  my $t = $text;
+  if ($ENV{GUARD_KEEP_QUOTES}) {
+    $t =~ s/'([^']*)'/$1/g;
+    $t =~ s/"((?:[^"\\]|\\.)*)"/$1/g;
+  } else {
+    $t =~ s/'[^']*'/Q/g;
+    $t =~ s/"(?:[^"\\]|\\.)*"/Q/g;
+  }
   for my $seg (split /&&|\|\||[;&|(){}\n]/, $t) {
     $seg =~ s/^\s+//;
     1 while $seg =~ s/^(?:then|do|else|elif|if|while|until|!|time|env|sudo|command|exec|nohup|xargs)(?:\s+|$)//

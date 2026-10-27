@@ -37,6 +37,38 @@ if at "${D}init" && ! grep -q -- '--scaffold-only' <<<"$segs"; then
   block "'deepsec init' starts paid AI processing; use 'deepsec init --scaffold-only'."
 fi
 
+# Prompt-injection backstop: whatever a ticket says, never leak secrets, run downloaded code or
+# turn off the harness. (Ticket content is screened first — see factory-loop/injection/.)
+kseg=$(GUARD_KEEP_QUOTES=1 perl "$here/guard-normalize.pl" <<<"$raw") # same lines, quoted text kept
+qraw=$(GUARD_FLAT=1 perl "$here/guard-normalize.pl" <<<"$raw") # unsplit (pipes kept), quotes hidden, no heredoc file bodies
+SECRET='(\.ssh/|/id_(rsa|ed25519)|\.aws/credentials|\.netrc|\.npmrc|\.git-credentials|\.config/gh/|\.docker/config\.json|\.gnupg/|Keychains/|(^|[/[:space:]])\.env($|[.[:space:]]))'
+READER='(cat|less|more|head|tail|base64|xxd|od|strings|cp|scp|rsync|tar|zip|gzip|curl|wget|nc|openssl|python3?|node|perl|ruby|awk|sed|grep|source|\.)'
+at 'gh[[:space:]]+auth[[:space:]]+token' && block "printing the GitHub token is not allowed."
+grep -q -- '--show-token' <<<"$segs" && block "printing the GitHub token is not allowed."
+grep -qE "^${READER}([[:space:]].*)?${SECRET}" <<<"$kseg" && block "reading credential files (ssh keys, .env, tokens) is not allowed."
+at "${G}credential([[:space:]]|$)" && block "git credential helpers can reveal tokens; not allowed."
+at 'security[[:space:]]+(find|dump)-' && block "reading the macOS keychain is not allowed."
+at 'printenv' && block "dumping environment variables is not allowed (they hold tokens)."
+grep -qE '(^|[;&|(][[:space:]]*)(env|export[[:space:]]+-p|set)[[:space:]]*($|[|>;&)])' <<<"$qraw" && block "dumping environment variables is not allowed (they hold tokens)."
+grep -qE '(curl|wget)[^|;&]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da)?sh\b|(ba|z)?sh[[:space:]]+<\([[:space:]]*(curl|wget)' <<<"$qraw" && block "piping downloaded code into a shell is not allowed."
+at '(nc|ncat|netcat|socat|telnet|scp|sftp|ftp)([[:space:]]|$)' && block "raw network transfer tools are not allowed (possible exfiltration)."
+while IFS= read -r seg; do
+  [[ "$seg" =~ ^(curl|wget)[[:space:]] ]] || continue
+  if [[ "$seg" =~ [[:space:]](-d|--data[a-z-]*|-F|--form|-T|--upload-file|--post-data|--post-file|--body-file)([[:space:]=]|$) ]]; then
+    grep -oE 'https?://[^/[:space:]]+' <<<"$seg" | grep -qvE '^https?://([a-z0-9-]+\.)*github\.com$' && block "uploading data to a non-GitHub host is not allowed (possible exfiltration)."
+  fi
+done <<<"$kseg"
+grep -qE -- '--no-verify|core\.hooksPath|dangerously' <<<"$segs$kseg" && block "skipping or redirecting hooks is not allowed."
+
+# On a ticket branch the harness is read-only: a ticket can't rewrite the rules that check it.
+if [[ "$branch" == factory/issue-* ]]; then
+  P='(\.claude/(hooks|skills|settings|agents|commands)|\.github/)'
+  W='^(tee|cp|mv|rm|ln|chmod|chown|touch|truncate|install|dd|sed[[:space:]]+(-[a-zA-Z]*i|--in-place)|perl[[:space:]]+-[a-zA-Z]*i|git[[:space:]]+(checkout|restore|rm|mv|apply))([[:space:]]|$)'
+  if grep -qE ">{1,2}[[:space:]]*[^[:space:]]*${P}" <<<"$kseg" || grep -E "$W" <<<"$kseg" | grep -qE "$P"; then
+    block "harness files (.claude/, .github/) are read-only on ticket branches."
+  fi
+fi
+
 # Quality gate before any PR is opened. Runs on the branch being proposed: --head <ref> if given
 # (checked out in a temporary worktree), else the directory the command cd's into, else the repo.
 if at 'gh[[:space:]]+pr[[:space:]]+create'; then
@@ -50,7 +82,8 @@ if at 'gh[[:space:]]+pr[[:space:]]+create'; then
     dir=$tmp
   fi
   # Fail closed: a gate that doesn't finish in time blocks the PR (hook timeout would let it through).
-  out=$(cd "$dir" && perl -e 'alarm shift; exec @ARGV' 240 "$here/../skills/factory-loop/quality-gate.sh" 2>&1)
+  gate_branch=${head:-$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)}
+  out=$(cd "$dir" && GATE_BRANCH="$gate_branch" perl -e 'alarm shift; exec @ARGV' 240 "$here/../skills/factory-loop/quality-gate.sh" 2>&1)
   code=$?
   [ -n "$tmp" ] && git -C "$root" worktree remove --force "$tmp" 2>/dev/null
   [ "$code" -eq 142 ] && block "quality gate timed out (240s) — run it yourself and fix what's slow."

@@ -20,7 +20,7 @@ test('runEvals writes two valid results files with resolved commit SHAs', () => 
   const { dir, sh } = repoWith({}, app);
   const out = mkdtempSync(join(tmpdir(), 'out-'));
   const { unit, risk } = runEvals({ root: dir, outDir: out, project: 'app', base: 'base', head: 'HEAD', label: 'T', ranAt: 'now' });
-  for (const name of ['unit-tests', 'merge-risk']) {
+  for (const name of ['unit-tests', 'merge-risk', 'prompt-injection']) {
     const saved = JSON.parse(readFileSync(join(out, name, 'results.json'), 'utf8'));
     assert.deepEqual(validate(saved), [], name);
   }
@@ -37,5 +37,6 @@ test('main prints a summary line per eval and every case', (t) => {
   main(['--project', 'app', '--base', 'base'], dir, mkdtempSync(join(tmpdir(), 'out-')));
   assert.match(lines[0], /^unit-tests: \d+\/100/);
   assert.match(lines[1], /^merge-risk: \d+\/100 .* risk$/);
-  assert.equal(lines.length, 2 + 8 + 9);
+  assert.match(lines[2], /^prompt-injection: \d+\/100/);
+  assert.equal(lines.length, 3 + 8 + 9 + 12);
 });
