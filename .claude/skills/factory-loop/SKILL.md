@@ -216,7 +216,7 @@ considerations (`references/security.md`); and the browser checks you'll run in 
      Exit code 2 means console errors or a failed step — fix and re-run. Open each PNG and check it
      actually shows the requirement before using it.
    If anything fails, fix and re-verify; don't report a feature you haven't seen working.
-   Keep `steps.json` in the scratchpad, and stop the server afterwards.
+   Keep `steps.json` in the scratchpad. Then run the **persona swarm** (`persona-swarm` skill: 5 persona agents → friction map; triage every entry, add a `## Persona swarm` PR section) and stop the server.
 6. **Run the evals** on the finished build, after the last code commit on the branch:
    ```bash
    node evals/run.mjs --project <project> --base origin/main --head HEAD --label "Ticket #N"
